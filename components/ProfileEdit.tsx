@@ -1,10 +1,11 @@
 
 import React, { useState } from 'react';
 import { User, UserRole } from '../types';
-import { 
-  User as UserIcon, Mail, Phone, Smartphone, Lock, 
+import {
+  User as UserIcon, Mail, Phone, Smartphone, Lock,
   Eye, EyeOff, Building, MessageSquare, Check, Shield
 } from 'lucide-react';
+import { formatPhoneNumber } from '../utils';
 
 interface Props {
   user: User;
@@ -64,18 +65,18 @@ const ProfileEdit: React.FC<Props> = ({ user, companyName, onUpdate, onCancel })
             <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 mb-6">
               <Shield size={14} className="text-blue-500" /> Account Security
             </h4>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="block text-xs font-bold text-slate-500 ml-1 uppercase tracking-wider">성명 *</label>
                 <div className="relative">
                   <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input 
+                  <input
                     required
-                    type="text" 
+                    type="text"
                     className="w-full pl-12 pr-4 py-3.5 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-sm bg-slate-50 font-medium transition-all"
                     value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   />
                 </div>
               </div>
@@ -83,14 +84,14 @@ const ProfileEdit: React.FC<Props> = ({ user, companyName, onUpdate, onCancel })
                 <label className="block text-xs font-bold text-slate-500 ml-1 uppercase tracking-wider">비밀번호 *</label>
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input 
+                  <input
                     required
-                    type={showPassword ? "text" : "password"} 
+                    type={showPassword ? "text" : "password"}
                     className="w-full pl-12 pr-12 py-3.5 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-sm bg-slate-50 font-medium transition-all"
                     value={formData.password}
-                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   />
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors"
@@ -123,18 +124,18 @@ const ProfileEdit: React.FC<Props> = ({ user, companyName, onUpdate, onCancel })
             <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2 mb-6">
               <Smartphone size={14} className="text-indigo-500" /> Contact Details
             </h4>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="block text-xs font-bold text-slate-500 ml-1 uppercase tracking-wider">휴대폰 번호</label>
                 <div className="relative">
                   <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input 
-                    type="tel" 
+                  <input
+                    type="tel"
                     className="w-full pl-12 pr-4 py-3.5 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none text-sm bg-slate-50 font-medium transition-all"
                     placeholder="010-XXXX-XXXX"
                     value={formData.mobile}
-                    onChange={(e) => setFormData({...formData, mobile: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, mobile: formatPhoneNumber(e.target.value) })}
                   />
                 </div>
               </div>
@@ -142,12 +143,12 @@ const ProfileEdit: React.FC<Props> = ({ user, companyName, onUpdate, onCancel })
                 <label className="block text-xs font-bold text-slate-500 ml-1 uppercase tracking-wider">일반 전화번호</label>
                 <div className="relative">
                   <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                  <input 
-                    type="tel" 
+                  <input
+                    type="tel"
                     className="w-full pl-12 pr-4 py-3.5 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none text-sm bg-slate-50 font-medium transition-all"
                     placeholder="02-XXX-XXXX"
                     value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, phone: formatPhoneNumber(e.target.value) })}
                   />
                 </div>
               </div>
@@ -157,12 +158,12 @@ const ProfileEdit: React.FC<Props> = ({ user, companyName, onUpdate, onCancel })
               <label className="block text-xs font-bold text-slate-500 ml-1 uppercase tracking-wider">이메일 주소</label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input 
-                  type="email" 
+                <input
+                  type="email"
                   className="w-full pl-12 pr-4 py-3.5 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-sm bg-slate-50 font-medium transition-all"
                   placeholder="example@nu.com"
                   value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 />
               </div>
             </div>
@@ -171,12 +172,12 @@ const ProfileEdit: React.FC<Props> = ({ user, companyName, onUpdate, onCancel })
               <label className="block text-xs font-bold text-slate-500 ml-1 uppercase tracking-wider">자기소개 / 비고</label>
               <div className="relative">
                 <MessageSquare className="absolute left-4 top-4 text-slate-400" size={18} />
-                <textarea 
+                <textarea
                   className="w-full pl-12 pr-4 py-4 border border-slate-200 rounded-3xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-sm bg-slate-50 font-medium transition-all resize-none leading-relaxed"
                   rows={4}
                   placeholder="추가 정보를 입력하세요."
                   value={formData.remarks}
-                  onChange={(e) => setFormData({...formData, remarks: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
                 />
               </div>
             </div>
@@ -184,14 +185,14 @@ const ProfileEdit: React.FC<Props> = ({ user, companyName, onUpdate, onCancel })
 
           {/* Action Buttons */}
           <div className="pt-8 border-t border-slate-100 flex flex-col sm:flex-row justify-end gap-3">
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={onCancel}
               className="px-8 py-3.5 text-slate-500 font-bold hover:bg-slate-50 rounded-2xl transition-all text-sm"
             >
               취소
             </button>
-            <button 
+            <button
               type="submit"
               className="px-10 py-4 bg-blue-600 text-white font-black rounded-2xl hover:bg-blue-700 shadow-xl shadow-blue-500/20 transition-all flex items-center justify-center gap-2 active:scale-95 text-sm uppercase tracking-widest"
             >

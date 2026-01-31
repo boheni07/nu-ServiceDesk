@@ -18,12 +18,14 @@ interface AppState {
 
 interface Props {
   currentState: AppState;
-  onApplyState: (newState: AppState) => void;
+  onReset: () => Promise<void>;
+  onGenerateSamples: () => Promise<void>;
+  onRestore: (data: AppState) => Promise<void>;
 }
 
 type ActionType = 'BACKUP' | 'RESTORE' | 'SAMPLE' | 'RESET';
 
-const DataManagement: React.FC<Props> = ({ currentState, onApplyState }) => {
+const DataManagement: React.FC<Props> = ({ currentState, onReset, onGenerateSamples, onRestore }) => {
   const [isExecuting, setIsExecuting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState('');
@@ -84,13 +86,13 @@ const DataManagement: React.FC<Props> = ({ currentState, onApplyState }) => {
     await simulateProgress(['파일 업로드 중...', 'JSON 파싱 중...', '데이터 구조 검증 중...', '시스템 상태 적용 중...']);
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
         const importedState = JSON.parse(event.target?.result as string) as AppState;
         // Basic validation
         if (importedState.users && importedState.companies && importedState.tickets) {
-          onApplyState(importedState);
-          setResult({ success: true, message: `성공적으로 데이터를 복원했습니다. (기관: ${importedState.companies.length}, 티켓: ${importedState.tickets.length})` });
+          await onRestore(importedState);
+          setResult({ success: true, message: `성공적으로 데이터를 복원했습니다.` });
         } else {
           throw new Error('Invalid data structure');
         }
@@ -109,19 +111,7 @@ const DataManagement: React.FC<Props> = ({ currentState, onApplyState }) => {
     setConfirmAction(null);
     await simulateProgress(['기존 데이터 초기화 중...', '샘플 기관 생성 중...', '샘플 프로젝트 매핑 중...', '테스트 티켓 생성 중...', '최종 적용 중...']);
 
-    const now = new Date();
-    const sampleTickets = getInitialTickets(now);
-    const sampleHistory = generateSampleHistory(sampleTickets);
-
-    onApplyState({
-      companies: initialCompanies,
-      users: initialUsers,
-      projects: initialProjects,
-      tickets: sampleTickets,
-      comments: [],
-      history: sampleHistory,
-      agencyInfo: initialAgencyInfo
-    });
+    await onGenerateSamples();
 
     setResult({ success: true, message: '기본 샘플 데이터 5세트가 성공적으로 생성되었습니다.' });
     setIsExecuting(false);
@@ -130,24 +120,18 @@ const DataManagement: React.FC<Props> = ({ currentState, onApplyState }) => {
 
   const handleReset = async () => {
     setConfirmAction(null);
-    await simulateProgress(['모든 레코드 검색 중...', '티켓 및 히스토리 삭제 중...', '프로젝트 해제 중...', '관리자 계정 보존 중...', '데이터베이스 정리 중...']);
+    setIsExecuting(true);
+    setStatusMessage('데이터 초기화 중...');
 
-    // Reset to only default admin
-    // FIX: Correctly use UserRole.ADMIN instead of ActionType.ADMIN (ActionType is a type, not a value)
-    const adminOnly = initialUsers.filter(u => u.role === UserRole.ADMIN || u.id === 'u1');
-    onApplyState({
-      companies: initialCompanies.filter(c => c.id === 'c1'),
-      users: adminOnly,
-      projects: [],
-      tickets: [],
-      comments: [],
-      history: [],
-      agencyInfo: initialAgencyInfo
-    });
-
-    setResult({ success: true, message: '플랫폼 데이터가 성공적으로 초기화되었습니다. 본사 및 관리자 정보만 유지됩니다.' });
-    setIsExecuting(false);
-    setProgress(0);
+    try {
+      await onReset();
+      setResult({ success: true, message: '플랫폼 데이터가 성공적으로 초기화되었습니다.' });
+    } catch (e) {
+      setResult({ success: false, message: '초기화 실패: ' + e });
+    } finally {
+      setIsExecuting(false);
+      setProgress(0);
+    }
   };
 
   const ActionCard = ({ icon: Icon, title, desc, onClick, variant = 'blue' }: any) => {

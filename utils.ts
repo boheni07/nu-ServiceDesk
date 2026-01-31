@@ -23,3 +23,22 @@ export const formatDate = (date: string | Date): string => {
 export const isOverdue = (dueDate: string): boolean => {
   return isAfter(new Date(), endOfDay(new Date(dueDate)));
 };
+
+export const formatPhoneNumber = (value: string): string => {
+  if (!value) return '';
+  const cleaned = value.replace(/\D/g, '');
+
+  // 02 (Seoul) special case
+  if (cleaned.startsWith('02')) {
+    if (cleaned.length < 3) return cleaned;
+    if (cleaned.length < 6) return `${cleaned.slice(0, 2)}-${cleaned.slice(2)}`;
+    if (cleaned.length < 10) return `${cleaned.slice(0, 2)}-${cleaned.slice(2, 5)}-${cleaned.slice(5)}`;
+    return `${cleaned.slice(0, 2)}-${cleaned.slice(2, 6)}-${cleaned.slice(6, 10)}`;
+  }
+
+  // Mobile / VOIP / Other Area Codes
+  if (cleaned.length < 4) return cleaned;
+  if (cleaned.length < 7) return `${cleaned.slice(0, 3)}-${cleaned.slice(3)}`;
+  if (cleaned.length < 11) return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
+  return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 7)}-${cleaned.slice(7, 11)}`;
+};

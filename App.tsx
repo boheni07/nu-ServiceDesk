@@ -12,7 +12,8 @@ import {
   Menu,
   X,
   ChevronLeft,
-  Database
+  Database,
+  BarChartBig
 } from 'lucide-react';
 
 import TicketList from './components/TicketList';
@@ -25,6 +26,8 @@ import ProfileEdit from './components/ProfileEdit';
 import DataManagement from './components/DataManagement';
 import SystemSettings from './components/SystemSettings';
 import Dashboard from './components/Dashboard';
+import PerformanceReport from './components/PerformanceReport';
+import ProjectPerformance from './components/ProjectPerformance';
 
 const App: React.FC = () => {
   const {
@@ -54,10 +57,13 @@ const App: React.FC = () => {
     updateProject,
     deleteProject,
     applyState,
-    setAgencyInfo
+    setAgencyInfo,
+    resetSystem,
+    generateSamples,
+    restoreData
   } = useServiceDesk();
 
-  const [view, setView] = useState<'dashboard' | 'list' | 'create' | 'edit' | 'detail' | 'companies' | 'users' | 'projects' | 'profile' | 'dataManagement' | 'settings'>('dashboard');
+  const [view, setView] = useState<'dashboard' | 'list' | 'create' | 'edit' | 'detail' | 'companies' | 'users' | 'projects' | 'profile' | 'dataManagement' | 'settings' | 'report'>('dashboard');
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -121,6 +127,11 @@ const App: React.FC = () => {
           <NavItem icon={LayoutDashboard} label="대시보드" targetView="dashboard" />
           <NavItem icon={PlusCircle} label="New Ticket" targetView="create" />
           <NavItem icon={TicketIcon} label="티켓 관리" targetView="list" />
+
+          <div className="pt-8 pb-3 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">Report</div>
+          <NavItem icon={BarChartBig} label="실적 보고" targetView="report" />
+          <NavItem icon={Briefcase} label="프로젝트 실적" targetView="projectReport" />
+
           <div className="pt-8 pb-3 px-4 text-[11px] font-bold text-slate-500 uppercase tracking-[0.2em]">Management</div>
           <NavItem icon={Briefcase} label="프로젝트 관리" targetView="projects" supportOrAdmin />
           <NavItem icon={Building2} label="고객사 관리" targetView="companies" adminOnly />
@@ -168,11 +179,13 @@ const App: React.FC = () => {
                 {view === 'projects' && 'Project Management'}
                 {view === 'profile' && 'My Account Settings'}
                 {view === 'dataManagement' && 'Data Management'}
+                {view === 'report' && 'Performance Report'}
+                {view === 'projectReport' && 'Project Performance'}
                 {view === 'settings' && 'System Configuration'}
               </h2>
               <p className="text-slate-500 text-sm sm:text-base mt-1">안녕하세요, {currentUser.name}님! {view === 'list' && '현재 활성화된 티켓 리스트입니다.'}</p>
             </div>
-            {(view === 'detail' || view === 'edit' || view === 'dataManagement' || view === 'settings') && <button onClick={() => changeView('list')} className="flex items-center gap-2 text-slate-500 hover:text-blue-600 font-bold px-4 py-2 rounded-xl border border-slate-200 bg-white shadow-sm transition-all self-start"><ChevronLeft size={20} /> Back to List</button>}
+            {(view === 'detail' || view === 'edit' || view === 'dataManagement' || view === 'settings' || view === 'report' || view === 'projectReport') && <button onClick={() => changeView('list')} className="flex items-center gap-2 text-slate-500 hover:text-blue-600 font-bold px-4 py-2 rounded-xl border border-slate-200 bg-white shadow-sm transition-all self-start"><ChevronLeft size={20} /> Back to List</button>}
           </div>
 
           <div className="relative">
@@ -181,14 +194,36 @@ const App: React.FC = () => {
             {view === 'create' && <TicketCreate projects={filteredProjects.filter(p => p.status === ProjectStatus.ACTIVE)} currentUser={currentUser} users={users} companies={companies} onSubmit={handleCreateTicket} onCancel={() => changeView('list')} />}
             {view === 'edit' && editingTicket && <TicketCreate projects={filteredProjects.filter(p => p.status === ProjectStatus.ACTIVE)} currentUser={currentUser} users={users} companies={companies} initialData={editingTicket} onSubmit={(data) => handleUpdateTicket(editingTicket.id, data)} onCancel={() => { setEditingTicket(null); changeView('list'); }} />}
             {view === 'detail' && selectedTicket && <TicketDetail ticket={selectedTicket} project={projects.find(p => p.id === selectedTicket.projectId)!} users={users} history={history.filter(h => h.ticketId === selectedTicket.id)} comments={comments.filter(c => c.ticketId === selectedTicket.id)} currentUser={currentUser} onStatusUpdate={updateTicketStatus} onAddComment={addComment} onBack={() => changeView('list')} />}
-            {view === 'companies' && currentUser.role === UserRole.ADMIN && <CompanyManagement companies={companies} onAdd={addCompany} onUpdate={(id, data) => { updateCompany(id, data); return true; }} onDelete={deleteCompany} />}
-            {view === 'users' && currentUser.role === UserRole.ADMIN && <UserManagement users={users} companies={companies} agencyName={agencyInfo.name} onAdd={addUser} onUpdate={(id, data) => updateUser(id, data)} onDelete={deleteUser} />}
-            {view === 'projects' && (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPPORT) && <ProjectManagement projects={filteredProjects} companies={companies} users={users} currentUser={currentUser} onAdd={addProject} onUpdate={(id, data) => { updateProject(id, data); return true; }} onDelete={deleteProject} />}
+            {view === 'companies' && currentUser.role === UserRole.ADMIN && <CompanyManagement companies={companies} users={users} projects={projects} tickets={tickets} onAdd={addCompany} onUpdate={(id, data) => { updateCompany(id, data); return true; }} onDelete={deleteCompany} />}
+            {view === 'users' && currentUser.role === UserRole.ADMIN && <UserManagement users={users} companies={companies} tickets={tickets} projects={projects} agencyName={agencyInfo.name} onAdd={addUser} onUpdate={(id, data) => updateUser(id, data)} onDelete={deleteUser} />}
+            {view === 'projects' && (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPPORT) && <ProjectManagement projects={filteredProjects} companies={companies} users={users} tickets={tickets} currentUser={currentUser} onAdd={addProject} onUpdate={(id, data) => { updateProject(id, data); return true; }} onDelete={deleteProject} />}
             {view === 'profile' && <ProfileEdit user={currentUser} companyName={currentUser.companyId ? companies.find(c => c.id === currentUser.companyId)?.name : '본사 (nu)'} onUpdate={(data) => updateUser(currentUser.id, data)} onCancel={() => changeView('list')} />}
             {view === 'dataManagement' && currentUser.role === UserRole.ADMIN && (
               <DataManagement
                 currentState={{ companies, users, projects, tickets, comments, history, agencyInfo }}
-                onApplyState={applyState}
+                onReset={resetSystem}
+                onGenerateSamples={generateSamples}
+                onRestore={restoreData}
+              />
+            )}
+
+            {view === 'report' && (
+              <PerformanceReport
+                tickets={filteredTickets}
+                projects={filteredProjects}
+                users={users}
+                history={history}
+                currentUser={currentUser}
+              />
+            )}
+
+            {view === 'projectReport' && (
+              <ProjectPerformance
+                tickets={filteredTickets}
+                projects={filteredProjects}
+                users={users}
+                history={history}
+                currentUser={currentUser}
               />
             )}
 

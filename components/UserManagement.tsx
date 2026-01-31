@@ -1,26 +1,34 @@
 
 import React, { useState } from 'react';
-import { User, UserRole, Company, UserStatus } from '../types';
+import { User, UserRole, Company, UserStatus, Ticket, Project } from '../types';
 import {
   Plus, Edit2, Trash2, X, Search, Shield, User as UserIcon,
   Mail, Phone, Smartphone, Lock, Eye, EyeOff, Building, MessageSquare,
   Power
 } from 'lucide-react';
+import { formatPhoneNumber } from '../utils';
+import DeletionAlert from './DeletionAlert';
 
 interface Props {
   users: User[];
   companies: Company[];
+  tickets: Ticket[];
+  projects: Project[];
   onAdd: (userData: Omit<User, 'id'>) => void;
   onUpdate: (id: string, userData: Partial<User>) => void;
   onDelete: (id: string) => void;
   agencyName: string;
 }
 
-const UserManagement: React.FC<Props> = ({ users, companies, onAdd, onUpdate, onDelete, agencyName }) => {
+const UserManagement: React.FC<Props> = ({ users, companies, tickets, projects, onAdd, onUpdate, onDelete, agencyName }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Deletion State
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteDependencies, setDeleteDependencies] = useState<any[]>([]);
 
   // Form State
   const [formData, setFormData] = useState<Omit<User, 'id'>>({
@@ -98,6 +106,45 @@ const UserManagement: React.FC<Props> = ({ users, companies, onAdd, onUpdate, on
       onAdd(submissionData);
     }
     setIsModalOpen(false);
+  };
+
+  const handleRequestDelete = (id: string) => {
+    const user = users.find(u => u.id === id);
+    if (!user) return;
+
+    // Calculate dependencies
+    // Calculate dependencies
+    const requestedTickets = tickets.filter(t => t.customerId === id);
+    const assignedTickets = tickets.filter(t => t.supportId === id);
+
+    // Check if PM of any active project
+    const managedProjects = projects.filter(p => p.supportStaffIds[0] === id);
+
+    setDeleteDependencies([
+      {
+        label: '요청한 티켓',
+        count: requestedTickets.length,
+        items: requestedTickets.map(t => `[${t.status}] ${t.title}`)
+      },
+      {
+        label: '담당 중인 티켓',
+        count: assignedTickets.length,
+        items: assignedTickets.map(t => `[${t.status}] ${t.title}`)
+      },
+      {
+        label: '관리 중인 프로젝트 (PM)',
+        count: managedProjects.length,
+        items: managedProjects.map(p => p.name)
+      }
+    ]);
+    setDeleteId(id);
+  };
+
+  const confirmDelete = () => {
+    if (deleteId) {
+      onDelete(deleteId);
+      setDeleteId(null);
+    }
   };
 
   const getRoleBadge = (role: UserRole) => {
@@ -180,7 +227,7 @@ const UserManagement: React.FC<Props> = ({ users, companies, onAdd, onUpdate, on
                       <button onClick={() => handleOpenEditModal(user)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors" title="수정">
                         <Edit2 size={16} />
                       </button>
-                      <button onClick={() => onDelete(user.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="삭제">
+                      <button onClick={() => handleRequestDelete(user.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="삭제">
                         <Trash2 size={16} />
                       </button>
                     </div>
@@ -305,7 +352,7 @@ const UserManagement: React.FC<Props> = ({ users, companies, onAdd, onUpdate, on
                         className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
                         placeholder="02-XXX-XXXX"
                         value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        onChange={(e) => setFormData({ ...formData, phone: formatPhoneNumber(e.target.value) })}
                       />
                     </div>
                   </div>
@@ -318,7 +365,7 @@ const UserManagement: React.FC<Props> = ({ users, companies, onAdd, onUpdate, on
                         className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
                         placeholder="010-XXXX-XXXX"
                         value={formData.mobile}
-                        onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
+                        onChange={(e) => setFormData({ ...formData, mobile: formatPhoneNumber(e.target.value) })}
                       />
                     </div>
                   </div>
@@ -393,6 +440,14 @@ const UserManagement: React.FC<Props> = ({ users, companies, onAdd, onUpdate, on
           </div>
         </div>
       )}
+      <DeletionAlert
+        isOpen={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={confirmDelete}
+        targetName={users.find(u => u.id === deleteId)?.name || ''}
+        targetType="사용자"
+        dependencies={deleteDependencies}
+      />
     </div>
   );
 };

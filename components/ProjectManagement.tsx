@@ -1,26 +1,33 @@
 
 import React, { useState } from 'react';
-import { Project, Company, User, UserRole, ProjectStatus } from '../types';
-import { 
-  Plus, Edit2, Trash2, X, Search, Briefcase, Calendar, 
+import { Project, Company, User, UserRole, ProjectStatus, Ticket } from '../types';
+import {
+  Plus, Edit2, Trash2, X, Search, Briefcase, Calendar,
   User as UserIcon, Building, MessageSquare, ShieldCheck,
   Power, Check
 } from 'lucide-react';
+import DeletionAlert from './DeletionAlert';
+import { format } from 'date-fns';
 
 interface Props {
   projects: Project[];
   companies: Company[];
   users: User[];
+  tickets: Ticket[];
   currentUser: User;
   onAdd: (projectData: Omit<Project, 'id'>) => void;
   onUpdate: (id: string, projectData: Partial<Project>) => boolean;
   onDelete: (id: string) => void;
 }
 
-const ProjectManagement: React.FC<Props> = ({ projects, companies, users, currentUser, onAdd, onUpdate, onDelete }) => {
+const ProjectManagement: React.FC<Props> = ({ projects, companies, users, tickets, currentUser, onAdd, onUpdate, onDelete }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+
+  // Deletion State
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteDependencies, setDeleteDependencies] = useState<any[]>([]);
 
   const isAdmin = currentUser.role === UserRole.ADMIN;
 
@@ -37,8 +44,8 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, curren
     status: ProjectStatus.ACTIVE
   });
 
-  const filteredProjects = projects.filter(p => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+  const filteredProjects = projects.filter(p =>
+    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -99,10 +106,34 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, curren
     }
   };
 
+  const handleRequestDelete = (id: string) => {
+    const project = projects.find(p => p.id === id);
+    if (!project) return;
+
+    // Calculate dependencies
+    const linkedTickets = tickets.filter(t => t.projectId === id);
+
+    setDeleteDependencies([
+      {
+        label: '연결된 티켓',
+        count: linkedTickets.length,
+        items: linkedTickets.map(t => `[${t.status}] ${t.title}`)
+      }
+    ]);
+    setDeleteId(id);
+  };
+
+  const confirmDelete = () => {
+    if (deleteId) {
+      onDelete(deleteId);
+      setDeleteId(null);
+    }
+  };
+
   const toggleSelection = (id: string, field: 'customerContactIds' | 'supportStaffIds') => {
     setFormData(prev => {
       const current = prev[field];
-      const next = current.includes(id) 
+      const next = current.includes(id)
         ? current.filter(item => item !== id)
         : [...current, id];
       return { ...prev, [field]: next };
@@ -114,16 +145,16 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, curren
       <div className="flex justify-between items-center">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-          <input 
-            type="text" 
-            placeholder="프로젝트명 또는 설명 검색..." 
+          <input
+            type="text"
+            placeholder="프로젝트명 또는 설명 검색..."
             className="pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-80 shadow-sm"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
         {/* RBAC: Support can add project if their assigned projects screen allows it */}
-        <button 
+        <button
           onClick={handleOpenAddModal}
           className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 transition-all shadow-md"
         >
@@ -135,12 +166,12 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, curren
         <table className="w-full text-left">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-sm">
-              <th className="px-6 py-4 font-semibold">프로젝트명</th>
-              <th className="px-6 py-4 font-semibold">고객사</th>
-              <th className="px-6 py-4 font-semibold">상태</th>
-              <th className="px-6 py-4 font-semibold">기간</th>
-              <th className="px-6 py-4 font-semibold">담당자 (PM)</th>
-              <th className="px-6 py-4 font-semibold text-right">관리</th>
+              <th className="px-4 py-3 font-semibold whitespace-nowrap">프로젝트명</th>
+              <th className="px-4 py-3 font-semibold whitespace-nowrap">고객사</th>
+              <th className="px-4 py-3 font-semibold whitespace-nowrap">상태</th>
+              <th className="px-4 py-3 font-semibold whitespace-nowrap">기간</th>
+              <th className="px-4 py-3 font-semibold whitespace-nowrap">담당자 (PM)</th>
+              <th className="px-4 py-3 font-semibold text-right whitespace-nowrap">관리</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -157,7 +188,7 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, curren
                 const isActive = project.status === ProjectStatus.ACTIVE;
                 return (
                   <tr key={project.id} className="hover:bg-slate-50 transition-colors group text-sm">
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className={`w-9 h-9 rounded-lg flex items-center justify-center font-bold ${isActive ? 'bg-indigo-50 text-indigo-500' : 'bg-slate-100 text-slate-400'}`}>
                           <Briefcase size={18} />
@@ -168,20 +199,20 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, curren
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <span className="text-slate-600 font-medium">{client?.name || '정보 없음'}</span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${isActive ? 'bg-green-100 text-green-700 border-green-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
                         {project.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-slate-500 text-xs">
-                      {project.startDate && project.endDate 
-                        ? `${project.startDate} ~ ${project.endDate}`
+                    <td className="px-4 py-3 text-slate-500 text-xs whitespace-nowrap">
+                      {project.startDate && project.endDate
+                        ? `${format(new Date(project.startDate), 'yyyy-MM-dd')} ~ ${format(new Date(project.endDate), 'yyyy-MM-dd')}`
                         : '-'}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         {pm ? (
                           <>
@@ -194,12 +225,12 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, curren
                         ) : '-'}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
                       <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button onClick={() => handleOpenEditModal(project)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors" title="수정">
                           <Edit2 size={16} />
                         </button>
-                        <button onClick={() => onDelete(project.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="삭제">
+                        <button onClick={() => handleRequestDelete(project.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="삭제">
                           <Trash2 size={16} />
                         </button>
                       </div>
@@ -219,7 +250,7 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, curren
               <h3 className="text-lg font-bold text-slate-800">{editingProject ? '프로젝트 정보 수정' : '신규 프로젝트 등록'}</h3>
               <button onClick={() => setIsModalOpen(false)} className="p-1 hover:bg-slate-100 rounded-full transition-colors"><X size={20} className="text-slate-400" /></button>
             </div>
-            
+
             <form onSubmit={handleSubmit} className="overflow-y-auto custom-scrollbar">
               <div className="p-6 space-y-8">
                 {/* Basic Info */}
@@ -231,16 +262,16 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, curren
                     <div className="flex items-center gap-4">
                       <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">프로젝트 상태:</span>
                       <div className="flex bg-slate-100 p-1 rounded-lg">
-                        <button 
+                        <button
                           type="button"
-                          onClick={() => setFormData({...formData, status: ProjectStatus.ACTIVE})}
+                          onClick={() => setFormData({ ...formData, status: ProjectStatus.ACTIVE })}
                           className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${formData.status === ProjectStatus.ACTIVE ? 'bg-white text-green-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                         >
                           활성
                         </button>
-                        <button 
+                        <button
                           type="button"
-                          onClick={() => setFormData({...formData, status: ProjectStatus.INACTIVE})}
+                          onClick={() => setFormData({ ...formData, status: ProjectStatus.INACTIVE })}
                           className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${formData.status === ProjectStatus.INACTIVE ? 'bg-white text-slate-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                         >
                           비활성
@@ -251,24 +282,24 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, curren
                   <div className="grid grid-cols-2 gap-4">
                     <div className="col-span-2">
                       <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">프로젝트명 *</label>
-                      <input 
+                      <input
                         required
-                        type="text" 
+                        type="text"
                         className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
                         placeholder="프로젝트 이름을 입력하세요"
                         value={formData.name}
-                        onChange={(e) => setFormData({...formData, name: e.target.value})}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       />
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">시작일</label>
                       <div className="relative">
                         <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                        <input 
-                          type="date" 
+                        <input
+                          type="date"
                           className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
                           value={formData.startDate}
-                          onChange={(e) => setFormData({...formData, startDate: e.target.value})}
+                          onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                         />
                       </div>
                     </div>
@@ -276,11 +307,11 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, curren
                       <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">종료일</label>
                       <div className="relative">
                         <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                        <input 
-                          type="date" 
+                        <input
+                          type="date"
                           className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
                           value={formData.endDate}
-                          onChange={(e) => setFormData({...formData, endDate: e.target.value})}
+                          onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                         />
                       </div>
                     </div>
@@ -295,11 +326,11 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, curren
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">고객사 선택 *</label>
-                      <select 
+                      <select
                         required
                         className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white"
                         value={formData.clientId}
-                        onChange={(e) => setFormData({...formData, clientId: e.target.value, customerContactIds: []})}
+                        onChange={(e) => setFormData({ ...formData, clientId: e.target.value, customerContactIds: [] })}
                       >
                         <option value="">고객사 선택</option>
                         {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -313,8 +344,8 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, curren
                         ) : (
                           customerUsersOfSelectedClient.map(user => (
                             <label key={user.id} className="flex items-center gap-2 p-1.5 hover:bg-slate-50 rounded cursor-pointer transition-colors">
-                              <input 
-                                type="checkbox" 
+                              <input
+                                type="checkbox"
                                 checked={formData.customerContactIds.includes(user.id)}
                                 onChange={() => toggleSelection(user.id, 'customerContactIds')}
                                 className="rounded text-blue-600 focus:ring-blue-500"
@@ -337,14 +368,13 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, curren
                     <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">지원담당 선택 (복수 선택, 첫 번째 선택자가 PM)</label>
                     <div className="grid grid-cols-3 gap-3 p-3 border border-slate-200 rounded-lg bg-slate-50">
                       {supportUsers.map(user => (
-                        <div 
+                        <div
                           key={user.id}
                           onClick={() => toggleSelection(user.id, 'supportStaffIds')}
-                          className={`flex items-center gap-2 p-2 rounded-lg border transition-all cursor-pointer ${
-                            formData.supportStaffIds.includes(user.id) 
-                              ? 'bg-blue-600 text-white border-blue-600' 
-                              : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300'
-                          }`}
+                          className={`flex items-center gap-2 p-2 rounded-lg border transition-all cursor-pointer ${formData.supportStaffIds.includes(user.id)
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300'
+                            }`}
                         >
                           <div className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[10px] ${formData.supportStaffIds.includes(user.id) ? 'bg-blue-500' : 'bg-slate-100 text-slate-500'}`}>
                             {user.name.charAt(0)}
@@ -373,36 +403,36 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, curren
                   </h4>
                   <div>
                     <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">상세 설명</label>
-                    <textarea 
+                    <textarea
                       className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm resize-none"
                       rows={3}
                       placeholder="프로젝트의 주요 목표와 업무 범위를 입력하세요"
                       value={formData.description}
-                      onChange={(e) => setFormData({...formData, description: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">비고</label>
-                    <textarea 
+                    <textarea
                       className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm resize-none"
                       rows={2}
                       placeholder="기타 특이사항"
                       value={formData.remarks}
-                      onChange={(e) => setFormData({...formData, remarks: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
                     />
                   </div>
                 </section>
               </div>
-              
+
               <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 sticky bottom-0">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => setIsModalOpen(false)}
                   className="px-6 py-2 text-slate-600 font-bold hover:bg-slate-200 rounded-lg transition-colors"
                 >
                   취소
                 </button>
-                <button 
+                <button
                   type="submit"
                   className="px-8 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-all shadow-md shadow-blue-100"
                 >
@@ -413,6 +443,14 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, curren
           </div>
         </div>
       )}
+      <DeletionAlert
+        isOpen={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={confirmDelete}
+        targetName={projects.find(p => p.id === deleteId)?.name || ''}
+        targetType="프로젝트"
+        dependencies={deleteDependencies}
+      />
     </div>
   );
 };
