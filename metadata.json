@@ -1,0 +1,8 @@
+{
+  "name": "nu-ServiceDesk",
+  "description": "A trust-building service desk platform designed for transparent collaboration between customers and support teams, featuring automated due-date tracking, approval workflows, and real-time status history.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
