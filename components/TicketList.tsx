@@ -7,6 +7,7 @@ import { Clock, MessageSquare, Paperclip, ChevronRight, User as UserIcon, Calend
 interface Props {
   tickets: Ticket[];
   currentUser: User;
+  users: User[];
   onSelect: (id: string) => void;
   onEdit: (ticket: Ticket) => void;
   onDelete: (id: string) => void;
@@ -25,7 +26,7 @@ const getStatusColor = (status: TicketStatus) => {
   }
 };
 
-const TicketList: React.FC<Props> = ({ tickets, currentUser, onSelect, onEdit, onDelete }) => {
+const TicketList: React.FC<Props> = ({ tickets, currentUser, users, onSelect, onEdit, onDelete }) => {
   if (tickets.length === 0) {
     return (
       <div className="bg-white rounded-3xl border border-slate-200 p-20 flex flex-col items-center justify-center text-center shadow-sm">
@@ -41,30 +42,31 @@ const TicketList: React.FC<Props> = ({ tickets, currentUser, onSelect, onEdit, o
   // Permission Logic: Can edit/delete only if creator AND initial state
   const canModify = (ticket: Ticket) => {
     const isCreator = ticket.customerId === currentUser.id;
-    const isInitialState = currentUser.role === UserRole.CUSTOMER 
-      ? ticket.status === TicketStatus.WAITING 
+    const isInitialState = currentUser.role === UserRole.CUSTOMER
+      ? ticket.status === TicketStatus.WAITING
       : ticket.status === TicketStatus.RECEIVED;
-    
+
     return isCreator && isInitialState;
   };
 
   return (
     <div className="space-y-4">
       {/* Desktop Table Header */}
-      <div className="hidden lg:grid grid-cols-12 gap-4 px-8 py-4 bg-white border border-slate-200 rounded-2xl text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">
+      <div className="hidden lg:grid grid-cols-[3rem_minmax(0,1fr)_7rem_7rem_9rem_9rem_4rem] gap-4 px-8 py-4 bg-white border border-slate-200 rounded-2xl text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">
         <div className="col-span-1">ID</div>
-        <div className="col-span-4">Subject</div>
-        <div className="col-span-2">Status</div>
-        <div className="col-span-2">Due Date</div>
-        <div className="col-span-2">Requester</div>
+        <div className="col-span-1">Subject</div>
+        <div className="col-span-1">Status</div>
+        <div className="col-span-1">Due Date</div>
+        <div className="col-span-1">Requester</div>
+        <div className="col-span-1">Support Staff</div>
         <div className="col-span-1 text-right">Actions</div>
       </div>
 
       {/* Ticket Rows / Cards */}
       <div className="grid grid-cols-1 gap-3">
         {tickets.map(ticket => (
-          <div 
-            key={ticket.id} 
+          <div
+            key={ticket.id}
             className="group bg-white border border-slate-200 lg:border-slate-100 rounded-2xl lg:rounded-3xl p-5 sm:p-6 lg:p-0 transition-all hover:border-blue-300 hover:shadow-xl hover:shadow-blue-500/5 cursor-pointer"
           >
             {/* Mobile/Tablet Card Layout */}
@@ -77,13 +79,13 @@ const TicketList: React.FC<Props> = ({ tickets, currentUser, onSelect, onEdit, o
                   </span>
                   {canModify(ticket) && (
                     <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                      <button 
+                      <button
                         onClick={() => onEdit(ticket)}
                         className="p-1.5 bg-slate-50 text-slate-500 rounded-lg hover:text-blue-600"
                       >
                         <Pencil size={14} />
                       </button>
-                      <button 
+                      <button
                         onClick={() => onDelete(ticket.id)}
                         className="p-1.5 bg-slate-50 text-slate-500 rounded-lg hover:text-red-600"
                       >
@@ -101,7 +103,7 @@ const TicketList: React.FC<Props> = ({ tickets, currentUser, onSelect, onEdit, o
                   <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">마감기한</span>
                   <div className="flex items-center gap-1.5 text-sm text-slate-700 font-medium">
                     <Calendar size={14} className="text-slate-400" />
-                    {formatDate(ticket.dueDate).split(' ')[0]}
+                    {formatDate(ticket.expectedCompletionDate || ticket.dueDate).split(' ')[0]}
                   </div>
                 </div>
                 <div className="flex flex-col gap-1">
@@ -111,15 +113,22 @@ const TicketList: React.FC<Props> = ({ tickets, currentUser, onSelect, onEdit, o
                     {ticket.customerName}
                   </div>
                 </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">지원담당</span>
+                  <div className="flex items-center gap-1.5 text-sm text-slate-700 font-medium">
+                    <UserIcon size={14} className="text-slate-400" />
+                    {ticket.supportId ? (users.find(u => u.id === ticket.supportId)?.name || ticket.supportName) : '-'}
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Desktop Row Layout */}
-            <div className="hidden lg:grid grid-cols-12 gap-4 items-center px-8 py-5" onClick={() => onSelect(ticket.id)}>
+            <div className="hidden lg:grid grid-cols-[3rem_minmax(0,1fr)_7rem_7rem_9rem_9rem_4rem] gap-4 items-center px-8 py-5" onClick={() => onSelect(ticket.id)}>
               <div className="col-span-1">
                 <span className="font-mono text-xs text-blue-600 font-bold opacity-70 group-hover:opacity-100 transition-opacity">{ticket.id}</span>
               </div>
-              <div className="col-span-4 pr-4">
+              <div className="col-span-1 pr-4">
                 <span className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors block truncate">
                   {ticket.title}
                 </span>
@@ -130,17 +139,17 @@ const TicketList: React.FC<Props> = ({ tickets, currentUser, onSelect, onEdit, o
                   )}
                 </div>
               </div>
-              <div className="col-span-2">
+              <div className="col-span-1">
                 <span className={`inline-flex px-3 py-1 rounded-full text-[11px] font-bold border ${getStatusColor(ticket.status)} transition-all group-hover:shadow-sm`}>
                   {ticket.status}
                 </span>
               </div>
-              <div className="col-span-2">
+              <div className="col-span-1">
                 <span className={`text-sm font-medium ${ticket.status === TicketStatus.DELAYED ? 'text-rose-600 font-bold' : 'text-slate-600'}`}>
-                  {formatDate(ticket.dueDate).split(' ')[0]}
+                  {formatDate(ticket.expectedCompletionDate || ticket.dueDate).split(' ')[0]}
                 </span>
               </div>
-              <div className="col-span-2">
+              <div className="col-span-1">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 bg-slate-100 rounded-xl flex items-center justify-center text-[10px] font-black text-slate-500 shadow-inner group-hover:bg-blue-600 group-hover:text-white transition-all">
                     {ticket.customerName.charAt(0)}
@@ -148,17 +157,22 @@ const TicketList: React.FC<Props> = ({ tickets, currentUser, onSelect, onEdit, o
                   <span className="text-sm text-slate-700 font-medium">{ticket.customerName}</span>
                 </div>
               </div>
+              <div className="col-span-1">
+                <span className="text-sm text-slate-600 font-medium">
+                  {ticket.supportId ? (users.find(u => u.id === ticket.supportId)?.name || ticket.supportName) : '-'}
+                </span>
+              </div>
               <div className="col-span-1 flex items-center justify-end gap-1">
                 {canModify(ticket) && (
                   <div className="flex items-center gap-1 mr-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                    <button 
+                    <button
                       onClick={() => onEdit(ticket)}
                       className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                       title="수정"
                     >
                       <Pencil size={16} />
                     </button>
-                    <button 
+                    <button
                       onClick={() => onDelete(ticket.id)}
                       className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                       title="삭제"

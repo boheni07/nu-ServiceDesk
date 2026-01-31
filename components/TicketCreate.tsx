@@ -99,14 +99,14 @@ const TicketCreate: React.FC<Props> = ({ projects, currentUser, users, companies
   };
 
   return (
-    <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-200 p-5 sm:p-8 lg:p-10 max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <form onSubmit={handleSubmit} className="space-y-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
-          <div className="lg:col-span-2 space-y-6 sm:space-y-8">
+    <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-200 p-5 sm:p-6 lg:p-8 max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+          <div className="lg:col-span-2 space-y-4">
             <div className="space-y-2">
-              <label className="block text-sm font-bold text-slate-700 ml-1">프로젝트 선택 *</label>
+              <label className="block text-xs font-bold text-slate-700 ml-1 mb-1">프로젝트 선택 *</label>
               <select
-                className="w-full px-5 py-3.5 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none bg-slate-50 transition-all text-sm font-medium"
+                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none bg-slate-50 transition-all text-sm font-medium"
                 value={projectId}
                 onChange={(e) => setProjectId(e.target.value)}
                 required
@@ -117,8 +117,8 @@ const TicketCreate: React.FC<Props> = ({ projects, currentUser, users, companies
 
               {/* Selected Project Info */}
               {selectedProjectDetails && (
-                <div className="mt-4 p-5 bg-slate-50 border border-slate-100 rounded-2xl animate-in fade-in slide-in-from-top-2">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="mt-2 p-3 bg-slate-50 border border-slate-100 rounded-xl animate-in fade-in slide-in-from-top-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <h4 className="flex items-center gap-2 text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2">
                         <Building2 size={12} className="text-blue-500" /> 고객사
@@ -163,35 +163,35 @@ const TicketCreate: React.FC<Props> = ({ projects, currentUser, users, companies
               )}
             </div>
 
-            <div className="space-y-2">
-              <label className="block text-sm font-bold text-slate-700 ml-1">제목 *</label>
+            <div className="space-y-1">
+              <label className="block text-xs font-bold text-slate-700 ml-1 mb-1">제목 *</label>
               <input
                 type="text"
                 placeholder="요청 제목을 입력하세요"
-                className="w-full px-5 py-3.5 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none bg-slate-50 transition-all text-sm font-medium"
+                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none bg-slate-50 transition-all text-sm font-medium"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="block text-sm font-bold text-slate-700 ml-1">요청 상세 *</label>
-              <div className="relative border border-slate-200 rounded-2xl overflow-hidden focus-within:ring-4 focus-within:ring-blue-500/10 focus-within:border-blue-500 transition-all bg-slate-50">
+            <div className="space-y-1">
+              <label className="block text-xs font-bold text-slate-700 ml-1 mb-1">요청 상세 *</label>
+              <div className="relative border border-slate-200 rounded-xl overflow-hidden focus-within:ring-4 focus-within:ring-blue-500/10 focus-within:border-blue-500 transition-all bg-slate-50">
                 <textarea
-                  rows={8}
+                  rows={5}
                   placeholder="요청 내용을 상세히 기재해주세요."
-                  className="w-full px-5 py-4 bg-transparent outline-none resize-none text-sm leading-relaxed"
+                  className="w-full px-4 py-3 bg-transparent outline-none resize-none text-sm leading-relaxed"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   required
                 />
-                <div className="p-4 bg-white/50 border-t border-slate-200/50">
-                  <div className="flex justify-between items-center mb-4">
+                <div className="p-3 bg-white/50 border-t border-slate-200/50">
+                  <div className="flex justify-between items-center mb-2">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                       <FileText size={14} /> 첨부 파일 (문서, PR, 엑셀, 그림)
                     </p>
-                    <label className="px-4 py-2 bg-white hover:bg-slate-50 rounded-xl cursor-pointer transition-colors border border-slate-200 shadow-sm flex items-center gap-2 text-xs font-bold text-slate-600">
+                    <label className="px-3 py-1.5 bg-white hover:bg-slate-50 rounded-lg cursor-pointer transition-colors border border-slate-200 shadow-sm flex items-center gap-2 text-[11px] font-bold text-slate-600">
                       <Paperclip size={14} />
                       <span>파일 선택</span>
                       <input type="file" multiple accept={ALLOWED_EXTENSIONS} className="hidden" onChange={handleFileChange} />
@@ -212,18 +212,20 @@ const TicketCreate: React.FC<Props> = ({ projects, currentUser, users, companies
             </div>
           </div>
 
-          <div className="space-y-6 lg:space-y-8">
+
+
+          <div className="space-y-4 lg:space-y-6">
             {(isSupport || isAdmin) && (
-              <div className="bg-indigo-50/50 p-6 sm:p-8 rounded-3xl border border-indigo-100 shadow-sm">
-                <h3 className="text-sm font-bold text-indigo-800 mb-6 flex items-center gap-2.5">
-                  <div className="p-1.5 bg-indigo-100 rounded-lg text-indigo-600"><Phone size={16} /></div> 지원 정보
+              <div className="bg-indigo-50/50 p-4 sm:p-5 rounded-2xl border border-indigo-100 shadow-sm">
+                <h3 className="text-sm font-bold text-indigo-800 mb-3 flex items-center gap-2.5">
+                  <div className="p-1.5 bg-indigo-100 rounded-lg text-indigo-600"><Phone size={16} /></div> 접수 방법
                 </h3>
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <div>
-                    <label className="block text-[10px] font-black text-indigo-400 mb-2.5 uppercase tracking-widest">접수 방법 *</label>
+
                     <div className="grid grid-cols-2 gap-2">
                       {Object.values(IntakeMethod).map((method) => (
-                        <button key={method} type="button" onClick={() => setIntakeMethod(method)} className={`px-3 py-3 rounded-xl text-xs font-bold border transition-all ${intakeMethod === method ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg' : 'bg-white text-indigo-400 border-indigo-100'}`}>{method}</button>
+                        <button key={method} type="button" onClick={() => setIntakeMethod(method)} className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all ${intakeMethod === method ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg' : 'bg-white text-indigo-400 border-indigo-100'}`}>{method}</button>
                       ))}
                     </div>
                   </div>
@@ -231,20 +233,20 @@ const TicketCreate: React.FC<Props> = ({ projects, currentUser, users, companies
               </div>
             )}
 
-            <div className="bg-slate-50 p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm">
-              <h3 className="text-sm font-bold text-slate-800 mb-6 flex items-center gap-2.5">
+            <div className="bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
+              <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2.5">
                 <div className="p-1.5 bg-blue-100 rounded-lg text-blue-600"><Calendar size={16} /></div> 기한 설정
               </h3>
-              <div className="space-y-6">
-                <input type="date" className="w-full px-4 py-3 border border-slate-200 rounded-xl outline-none bg-white text-sm font-medium" value={dueDate} min={format(new Date(), 'yyyy-MM-dd')} onChange={(e) => setDueDate(e.target.value)} />
+              <div className="space-y-3">
+                <input type="date" className="w-full px-3 py-2.5 border border-slate-200 rounded-xl outline-none bg-white text-sm font-medium" value={dueDate} min={format(new Date(), 'yyyy-MM-dd')} onChange={(e) => setDueDate(e.target.value)} />
                 {isShortened && (
                   <textarea rows={3} placeholder="기한 단축 사유를 입력하세요." className="w-full px-4 py-3 border border-rose-200 rounded-xl text-xs bg-white resize-none" value={dueReason} onChange={(e) => setDueReason(e.target.value)} />
                 )}
               </div>
             </div>
 
-            <div className="p-5 rounded-3xl bg-blue-600 text-white text-[11px] flex gap-4">
-              <HelpCircle className="shrink-0 opacity-80" size={20} />
+            <div className="p-4 rounded-2xl bg-blue-600 text-white text-[11px] flex gap-3">
+              <HelpCircle className="shrink-0 opacity-80" size={18} />
               <div className="font-medium">
                 <p className="font-black mb-1.5 uppercase tracking-wider opacity-80">안내사항</p>
                 <p className="opacity-90 leading-relaxed">등록된 티켓은 지원팀 검토 후 '접수' 상태로 전환됩니다. 모든 대화 이력과 파일은 안전하게 보존됩니다.</p>
@@ -253,12 +255,12 @@ const TicketCreate: React.FC<Props> = ({ projects, currentUser, users, companies
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 pt-8 border-t border-slate-100">
-          <button type="button" onClick={onCancel} className="px-8 py-3.5 text-slate-500 font-bold hover:bg-slate-50 rounded-2xl transition-all text-sm">취소</button>
-          <button type="submit" className="px-12 py-4 bg-blue-600 text-white font-black rounded-2xl hover:bg-blue-700 shadow-xl transition-all flex items-center gap-2 text-sm uppercase tracking-widest leading-none"><Check size={20} /> 티켓 등록 완료</button>
+        <div className="flex justify-end gap-3 pt-6 border-t border-slate-100">
+          <button type="button" onClick={onCancel} className="px-6 py-2.5 text-slate-500 font-bold hover:bg-slate-50 rounded-xl transition-all text-xs">취소</button>
+          <button type="submit" className="px-8 py-3 bg-blue-600 text-white font-black rounded-xl hover:bg-blue-700 shadow-lg transition-all flex items-center gap-2 text-xs uppercase tracking-widest leading-none"><Check size={18} /> 티켓 등록</button>
         </div>
-      </form>
-    </div>
+      </form >
+    </div >
   );
 };
 

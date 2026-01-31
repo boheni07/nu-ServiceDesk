@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 // Added UserRole to imports from types.ts
 import { Company, User, Project, Ticket, Comment, HistoryEntry, TicketStatus, UserRole, AgencyInfo } from '../types';
-import { initialCompanies, initialUsers, initialProjects, getInitialTickets, initialAgencyInfo } from '../App';
+import { initialCompanies, initialUsers, initialProjects, getInitialTickets, initialAgencyInfo, generateSampleHistory } from '../sampleDataGenerator';
 import { Download, Upload, RotateCcw, Trash2, CheckCircle2, AlertTriangle, Loader2, Database, HardDrive, FileJson, X } from 'lucide-react';
 import { addDays } from 'date-fns';
 
@@ -111,13 +111,7 @@ const DataManagement: React.FC<Props> = ({ currentState, onApplyState }) => {
 
     const now = new Date();
     const sampleTickets = getInitialTickets(now);
-    const sampleHistory: HistoryEntry[] = [];
-    sampleTickets.forEach(t => {
-      sampleHistory.push({ id: `h-${t.id}-init`, ticketId: t.id, status: TicketStatus.WAITING, changedBy: t.customerName, timestamp: t.createdAt, note: '티켓이 신규 등록되었습니다.' });
-      if (t.status !== TicketStatus.WAITING) {
-        sampleHistory.push({ id: `h-${t.id}-received`, ticketId: t.id, status: TicketStatus.RECEIVED, changedBy: t.supportName || '시스템', timestamp: addDays(new Date(t.createdAt), 1).toISOString(), note: '티켓이 접수되었습니다.' });
-      }
-    });
+    const sampleHistory = generateSampleHistory(sampleTickets);
 
     onApplyState({
       companies: initialCompanies,

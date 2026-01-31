@@ -1,5 +1,5 @@
 
-import { addDays, isWeekend, format, isAfter } from 'date-fns';
+import { addDays, isWeekend, format, isAfter, endOfDay } from 'date-fns';
 
 /**
  * Calculates a date after N business days (excluding Saturday and Sunday).
@@ -21,5 +21,5 @@ export const formatDate = (date: string | Date): string => {
 };
 
 export const isOverdue = (dueDate: string): boolean => {
-  return isAfter(new Date(), new Date(dueDate));
+  return isAfter(new Date(), endOfDay(new Date(dueDate)));
 };
