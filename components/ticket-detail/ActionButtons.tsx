@@ -30,7 +30,7 @@ const ActionButtons: React.FC<Props> = ({
 }) => {
     return (
         <div className="flex flex-col sm:flex-row justify-center gap-3">
-            {currentUser.role === UserRole.SUPPORT && (ticket.status === TicketStatus.IN_PROGRESS || ticket.status === TicketStatus.DELAYED) && (
+            {(currentUser.role === UserRole.SUPPORT || currentUser.role === UserRole.SUPPORT_LEAD || currentUser.role === UserRole.ADMIN) && (ticket.status === TicketStatus.IN_PROGRESS || ticket.status === TicketStatus.DELAYED) && (
                 <>
                     <button disabled={isDelayed} onClick={() => {
                         setShowPostponeModal(true);
@@ -42,7 +42,7 @@ const ActionButtons: React.FC<Props> = ({
                     </button>
                 </>
             )}
-            {(currentUser.role === UserRole.CUSTOMER && (ticket.status === TicketStatus.POSTPONE_REQUESTED || (ticket.status === TicketStatus.DELAYED && ticket.postponeDate && ticket.postponeReason))) && (
+            {((currentUser.role === UserRole.CUSTOMER || currentUser.role === UserRole.ADMIN) && (ticket.status === TicketStatus.POSTPONE_REQUESTED || (ticket.status === TicketStatus.DELAYED && ticket.postponeDate && ticket.postponeReason))) && (
                 <>
                     <button onClick={() => setShowRejectModal(true)} className="px-6 py-3 bg-white border border-rose-200 text-rose-600 rounded-xl font-black text-xs hover:bg-rose-50 transition-all active:scale-95">
                         연기 거절
@@ -52,7 +52,7 @@ const ActionButtons: React.FC<Props> = ({
                     </button>
                 </>
             )}
-            {currentUser.role === UserRole.CUSTOMER && ticket.status === TicketStatus.COMPLETION_REQUESTED && (
+            {(currentUser.role === UserRole.CUSTOMER || currentUser.role === UserRole.ADMIN) && ticket.status === TicketStatus.COMPLETION_REQUESTED && (
                 <>
                     <button onClick={() => setShowRejectCompleteModal(true)} className="px-6 py-3 bg-white border border-rose-200 text-rose-600 rounded-xl font-black text-xs hover:bg-rose-50 transition-all active:scale-95">
                         보완 요청

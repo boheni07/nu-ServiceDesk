@@ -4,9 +4,10 @@ import { Project, Company, User, UserRole, ProjectStatus, Ticket } from '../type
 import {
   Plus, Edit2, Trash2, X, Search, Briefcase, Calendar,
   User as UserIcon, Building, MessageSquare, ShieldCheck,
-  Power, Check
+  Power, Check, AlertCircle
 } from 'lucide-react';
 import DeletionAlert from './DeletionAlert';
+import ProjectDetail from './ProjectDetail';
 import { format } from 'date-fns';
 
 interface Props {
@@ -18,18 +19,21 @@ interface Props {
   onAdd: (projectData: Omit<Project, 'id'>) => void;
   onUpdate: (id: string, projectData: Partial<Project>) => boolean;
   onDelete: (id: string) => void;
+  supportTeams: string[];
 }
 
-const ProjectManagement: React.FC<Props> = ({ projects, companies, users, tickets, currentUser, onAdd, onUpdate, onDelete }) => {
+const ProjectManagement: React.FC<Props> = ({ projects, companies, users, tickets, currentUser, onAdd, onUpdate, onDelete, supportTeams }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
   // Deletion State
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteDependencies, setDeleteDependencies] = useState<any[]>([]);
 
   const isAdmin = currentUser.role === UserRole.ADMIN;
+  const canManage = isAdmin || currentUser.role === UserRole.SUPPORT_LEAD;
 
   // Form State
   const [formData, setFormData] = useState<Omit<Project, 'id'>>({
@@ -41,6 +45,7 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, ticket
     endDate: '',
     description: '',
     remarks: '',
+    supportTeam: '',
     status: ProjectStatus.ACTIVE
   });
 
@@ -49,7 +54,7 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, ticket
     p.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const supportUsers = users.filter(u => u.role === UserRole.SUPPORT || u.role === UserRole.ADMIN);
+  const supportUsers = users.filter(u => u.role === UserRole.SUPPORT || u.role === UserRole.SUPPORT_LEAD);
   const customerUsersOfSelectedClient = users.filter(u => u.role === UserRole.CUSTOMER && u.companyId === formData.clientId);
 
   const handleOpenAddModal = () => {
@@ -58,11 +63,12 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, ticket
       name: '',
       clientId: '',
       customerContactIds: [],
-      supportStaffIds: [currentUser.id], // Auto-assign creator if support
+      supportStaffIds: currentUser.role === UserRole.ADMIN ? [] : [currentUser.id], // Auto-assign creator if support (not Admin)
       startDate: '',
       endDate: '',
       description: '',
       remarks: '',
+      supportTeam: '',
       status: ProjectStatus.ACTIVE
     });
     setIsModalOpen(true);
@@ -79,6 +85,7 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, ticket
       endDate: project.endDate || '',
       description: project.description,
       remarks: project.remarks || '',
+      supportTeam: project.supportTeam || '',
       status: project.status
     });
     setIsModalOpen(true);
@@ -95,13 +102,32 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, ticket
       return;
     }
 
+    // Auto-assign Support Team and Support Leads based on PM
+    const pmId = formData.supportStaffIds[0];
+    const pmUser = users.find(u => u.id === pmId);
+    let finalFormData = { ...formData };
+
+    if (pmUser && pmUser.team) {
+      finalFormData.supportTeam = pmUser.team;
+
+      // Find all Support Leads of this team
+      const teamLeads = users.filter(u => u.role === UserRole.SUPPORT_LEAD && u.team === pmUser.team).map(u => u.id);
+
+      // Merge Leads into supportStaffIds, ensuring PM remains first and uniqueness
+      const uniqueIds = Array.from(new Set([...finalFormData.supportStaffIds, ...teamLeads]));
+      // Ensure PM is at index 0 (Set insertion order usually preserves it if it was first, but let's be safe)
+      const explicitIds = [pmId, ...uniqueIds.filter(id => id !== pmId)];
+
+      finalFormData.supportStaffIds = explicitIds;
+    }
+
     if (editingProject) {
-      const success = onUpdate(editingProject.id, formData);
+      const success = onUpdate(editingProject.id, finalFormData);
       if (success) {
         setIsModalOpen(false);
       }
     } else {
-      onAdd(formData);
+      onAdd(finalFormData);
       setIsModalOpen(false);
     }
   };
@@ -140,38 +166,43 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, ticket
     });
   };
 
+
+
+  // View swap logic removed. Modal rendered below.
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <input
             type="text"
             placeholder="프로젝트명 또는 설명 검색..."
-            className="pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-80 shadow-sm"
+            className="pl-10 pr-4 py-1.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-80 shadow-sm"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        {/* RBAC: Support can add project if their assigned projects screen allows it */}
-        <button
-          onClick={handleOpenAddModal}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 transition-all shadow-md"
-        >
-          <Plus size={18} /> 프로젝트 추가
-        </button>
+        {canManage && (
+          <button
+            onClick={handleOpenAddModal}
+            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-1.5 rounded-lg font-bold hover:bg-blue-700 transition-all shadow-md"
+          >
+            <Plus size={18} /> 프로젝트 추가
+          </button>
+        )}
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <table className="w-full text-left">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-sm">
-              <th className="px-4 py-3 font-semibold whitespace-nowrap">프로젝트명</th>
-              <th className="px-4 py-3 font-semibold whitespace-nowrap">고객사</th>
-              <th className="px-4 py-3 font-semibold whitespace-nowrap">상태</th>
-              <th className="px-4 py-3 font-semibold whitespace-nowrap">기간</th>
-              <th className="px-4 py-3 font-semibold whitespace-nowrap">담당자 (PM)</th>
-              <th className="px-4 py-3 font-semibold text-right whitespace-nowrap">관리</th>
+              <th className="px-3 py-2 font-semibold whitespace-nowrap">프로젝트명</th>
+              <th className="px-3 py-2 font-semibold whitespace-nowrap">고객사</th>
+              <th className="px-3 py-2 font-semibold whitespace-nowrap">상태</th>
+              <th className="px-3 py-2 font-semibold whitespace-nowrap">기간</th>
+              <th className="px-3 py-2 font-semibold whitespace-nowrap">담당자 (PM)</th>
+              <th className="px-3 py-2 font-semibold whitespace-nowrap">관리</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -187,8 +218,12 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, ticket
                 const pm = users.find(u => u.id === project.supportStaffIds[0]);
                 const isActive = project.status === ProjectStatus.ACTIVE;
                 return (
-                  <tr key={project.id} className="hover:bg-slate-50 transition-colors group text-sm">
-                    <td className="px-4 py-3">
+                  <tr
+                    key={project.id}
+                    onClick={() => setSelectedProjectId(project.id)}
+                    className="hover:bg-slate-50 transition-colors group text-sm cursor-pointer"
+                  >
+                    <td className="px-3 py-2">
                       <div className="flex items-center gap-3">
                         <div className={`w-9 h-9 rounded-lg flex items-center justify-center font-bold ${isActive ? 'bg-indigo-50 text-indigo-500' : 'bg-slate-100 text-slate-400'}`}>
                           <Briefcase size={18} />
@@ -199,20 +234,31 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, ticket
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
+                    <td className="px-3 py-2 whitespace-nowrap">
                       <span className="text-slate-600 font-medium">{client?.name || '정보 없음'}</span>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${isActive ? 'bg-green-100 text-green-700 border-green-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
-                        {project.status}
-                      </span>
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setStatusChangeProject(project);
+                        }}
+                        disabled={!isActive && companies.find(c => c.id === project.clientId)?.status === '비활성'}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all border shadow-sm flex items-center gap-1.5 ${isActive
+                          ? 'bg-green-500 text-white border-green-600 hover:bg-green-600'
+                          : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100 disabled:hover:bg-slate-100'
+                          }`}
+                      >
+                        <Power size={12} className={isActive ? 'text-white' : 'text-slate-400'} />
+                        {isActive ? '활성' : '비활성'}
+                      </button>
                     </td>
-                    <td className="px-4 py-3 text-slate-500 text-xs whitespace-nowrap">
+                    <td className="px-3 py-2 text-slate-500 text-xs whitespace-nowrap">
                       {project.startDate && project.endDate
                         ? `${format(new Date(project.startDate), 'yyyy-MM-dd')} ~ ${format(new Date(project.endDate), 'yyyy-MM-dd')}`
                         : '-'}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
+                    <td className="px-3 py-2 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         {pm ? (
                           <>
@@ -225,15 +271,31 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, ticket
                         ) : '-'}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap">
-                      <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => handleOpenEditModal(project)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors" title="수정">
-                          <Edit2 size={16} />
-                        </button>
-                        <button onClick={() => handleRequestDelete(project.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="삭제">
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
+                    <td className="px-3 py-2 whitespace-nowrap">
+                      {canManage && (
+                        <div className="flex justify-start gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenEditModal(project);
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                            title="수정"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRequestDelete(project.id);
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                            title="삭제"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 );
@@ -247,7 +309,16 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, ticket
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-10">
-              <h3 className="text-lg font-bold text-slate-800">{editingProject ? '프로젝트 정보 수정' : '신규 프로젝트 등록'}</h3>
+              <div className="flex items-center gap-3">
+                <h3 className="text-lg font-bold text-slate-800">{editingProject ? '프로젝트 정보 수정' : '신규 프로젝트 등록'}</h3>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border shadow-sm flex items-center gap-1.5 ${formData.status === ProjectStatus.ACTIVE
+                  ? 'bg-green-500 text-white border-green-600'
+                  : 'bg-slate-100 text-slate-500 border-slate-200'
+                  }`}>
+                  <Power size={10} className={formData.status === ProjectStatus.ACTIVE ? 'text-white' : 'text-slate-400'} />
+                  {formData.status === ProjectStatus.ACTIVE ? '활성' : '비활성'}
+                </span>
+              </div>
               <button onClick={() => setIsModalOpen(false)} className="p-1 hover:bg-slate-100 rounded-full transition-colors"><X size={20} className="text-slate-400" /></button>
             </div>
 
@@ -259,25 +330,6 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, ticket
                     <h4 className="text-sm font-bold text-blue-600 flex items-center gap-2">
                       <Briefcase size={16} /> 기본 정보
                     </h4>
-                    <div className="flex items-center gap-4">
-                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">프로젝트 상태:</span>
-                      <div className="flex bg-slate-100 p-1 rounded-lg">
-                        <button
-                          type="button"
-                          onClick={() => setFormData({ ...formData, status: ProjectStatus.ACTIVE })}
-                          className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${formData.status === ProjectStatus.ACTIVE ? 'bg-white text-green-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-                        >
-                          활성
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setFormData({ ...formData, status: ProjectStatus.INACTIVE })}
-                          className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${formData.status === ProjectStatus.INACTIVE ? 'bg-white text-slate-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-                        >
-                          비활성
-                        </button>
-                      </div>
-                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="col-span-2">
@@ -364,6 +416,8 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, ticket
                   <h4 className="text-sm font-bold text-blue-600 border-b pb-2 flex items-center gap-2">
                     <ShieldCheck size={16} /> 지원 인력 구성
                   </h4>
+
+
                   <div>
                     <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">지원담당 선택 (복수 선택, 첫 번째 선택자가 PM)</label>
                     <div className="grid grid-cols-3 gap-3 p-3 border border-slate-200 rounded-lg bg-slate-50">
@@ -450,7 +504,43 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, ticket
         targetName={projects.find(p => p.id === deleteId)?.name || ''}
         targetType="프로젝트"
         dependencies={deleteDependencies}
+        canDelete={true}
       />
+
+      {/* Project Detail Modal */}
+      {selectedProjectId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-10">
+              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <Briefcase size={20} className="text-blue-600" /> 프로젝트 상세 정보
+              </h3>
+              <button
+                onClick={() => setSelectedProjectId(null)}
+                className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+              >
+                <X size={20} className="text-slate-400" />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto custom-scrollbar p-6 bg-slate-50/50">
+              {(() => {
+                const project = projects.find(p => p.id === selectedProjectId);
+                if (!project) return null;
+                return (
+                  <ProjectDetail
+                    project={project}
+                    company={companies.find(c => c.id === project.clientId)}
+                    users={users}
+                    tickets={tickets}
+                    isModal={true}
+                  />
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

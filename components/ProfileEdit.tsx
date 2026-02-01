@@ -5,7 +5,7 @@ import {
   User as UserIcon, Mail, Phone, Smartphone, Lock,
   Eye, EyeOff, Building, MessageSquare, Check, Shield
 } from 'lucide-react';
-import { formatPhoneNumber } from '../utils';
+import { formatPhoneNumber, getRoleLabel } from '../utils';
 
 interface Props {
   user: User;
@@ -49,7 +49,7 @@ const ProfileEdit: React.FC<Props> = ({ user, companyName, onUpdate, onCancel })
               <p className="text-blue-400 font-mono text-sm mt-1">{user.loginId}</p>
               <div className="flex flex-wrap justify-center sm:justify-start gap-2 mt-4">
                 <span className="px-3 py-1 bg-slate-800 text-slate-300 rounded-xl text-[10px] font-black border border-slate-700 uppercase tracking-[0.2em]">
-                  {user.role}
+                  {getRoleLabel(user.role)}
                 </span>
                 <span className="px-3 py-1 bg-green-900/40 text-green-400 rounded-xl text-[10px] font-black border border-green-800/40 uppercase tracking-[0.2em]">
                   {user.status}

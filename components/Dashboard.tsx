@@ -1,5 +1,5 @@
 import React from 'react';
-import { Ticket, TicketStatus, User, Project, UserRole } from '../types';
+import { Ticket, TicketStatus, User, Project, UserRole, Comment, HistoryEntry } from '../types';
 import {
     Clock,
     CheckCircle2,
@@ -12,15 +12,19 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { isOverdue } from '../utils';
+import NotificationZone from './NotificationZone';
+
 
 interface Props {
     tickets: Ticket[];
     projects: Project[];
     currentUser: User;
+    comments: Comment[]; // Added comments prop
+    history: HistoryEntry[]; // Added history prop (though not strictly used in NotificationZone yet, might be standard practice or for future ext)
     onSelectTicket: (id: string) => void;
 }
 
-const Dashboard: React.FC<Props> = ({ tickets, projects, currentUser, onSelectTicket }) => {
+const Dashboard: React.FC<Props> = ({ tickets, projects, currentUser, comments, history, onSelectTicket }) => {
     const getStat = (status: TicketStatus) => tickets.filter(t => t.status === status).length;
     const overdueCount = tickets.filter(t => t.status !== TicketStatus.COMPLETED && isOverdue(t.dueDate)).length;
 
@@ -72,6 +76,18 @@ const Dashboard: React.FC<Props> = ({ tickets, projects, currentUser, onSelectTi
                     </div>
                 ))}
             </div>
+
+
+
+            {/* Notification Zone */}
+            <NotificationZone
+                tickets={tickets}
+                comments={comments}
+                history={history}
+                currentUser={currentUser}
+                projects={projects}
+                onSelectTicket={onSelectTicket}
+            />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                 {/* Urgent Items */}

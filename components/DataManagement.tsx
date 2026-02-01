@@ -21,6 +21,7 @@ interface Props {
   onReset: () => Promise<void>;
   onGenerateSamples: () => Promise<void>;
   onRestore: (data: AppState) => Promise<void>;
+  onBackup?: () => Promise<void>;
 }
 
 type ActionType = 'BACKUP' | 'RESTORE' | 'SAMPLE' | 'RESET';
@@ -61,19 +62,22 @@ const DataManagement: React.FC<Props> = ({ currentState, onReset, onGenerateSamp
 
   const handleBackup = async () => {
     setConfirmAction(null);
-    await simulateProgress(['데이터 직렬화 중...', '정합성 검증 중...', '파일 생성 중...', '다운로드 준비 완료']);
+    await simulateProgress(['데이터 추출 중...', 'JSON 생성 중...', '다운로드 준비 중...']);
 
-    const dataStr = JSON.stringify(currentState, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+    if (onBackup) {
+      await onBackup();
+    } else {
+      // Fallback to client-state backup (Legacy)
+      const dataStr = JSON.stringify(currentState, null, 2);
+      const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+      const exportFileDefaultName = `nu-servicedesk-backup-${new Date().toISOString().split('T')[0]}.json`;
+      const linkElement = document.createElement('a');
+      linkElement.setAttribute('href', dataUri);
+      linkElement.setAttribute('download', exportFileDefaultName);
+      linkElement.click();
+    }
 
-    const exportFileDefaultName = `nu-servicedesk-backup-${new Date().toISOString().split('T')[0]}.json`;
-
-    const linkElement = document.createElement('a');
-    linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
-    linkElement.click();
-
-    setResult({ success: true, message: '모든 데이터가 JSON 파일로 성공적으로 백업되었습니다.' });
+    setResult({ success: true, message: '백업 파일이 생성되었습니다.' });
     setIsExecuting(false);
     setProgress(0);
   };
@@ -111,11 +115,15 @@ const DataManagement: React.FC<Props> = ({ currentState, onReset, onGenerateSamp
     setConfirmAction(null);
     await simulateProgress(['기존 데이터 초기화 중...', '샘플 기관 생성 중...', '샘플 프로젝트 매핑 중...', '테스트 티켓 생성 중...', '최종 적용 중...']);
 
-    await onGenerateSamples();
-
-    setResult({ success: true, message: '기본 샘플 데이터 5세트가 성공적으로 생성되었습니다.' });
-    setIsExecuting(false);
-    setProgress(0);
+    try {
+      await onGenerateSamples();
+      setResult({ success: true, message: '기본 샘플 데이터 5세트가 성공적으로 생성되었습니다.' });
+    } catch (e: any) {
+      setResult({ success: false, message: '샘플 생성 실패: ' + (e.message || e) });
+    } finally {
+      setIsExecuting(false);
+      setProgress(0);
+    }
   };
 
   const handleReset = async () => {

@@ -74,7 +74,7 @@ const TicketPlanSection: React.FC<Props> = ({
                         <span className="text-xs font-black text-blue-600">{format(new Date(ticket.expectedCompletionDate!), 'yyyy-MM-dd')}</span>
                     </div>
                 </>
-            ) : currentUser.role === UserRole.SUPPORT ? (
+            ) : (currentUser.role === UserRole.SUPPORT || currentUser.role === UserRole.SUPPORT_LEAD || currentUser.role === UserRole.ADMIN) ? (
                 <div className="flex flex-col h-full gap-4">
                     <textarea className="flex-1 w-full px-4 py-3 border border-slate-200 rounded-xl outline-none text-sm resize-none bg-white focus:ring-4 focus:ring-blue-500/10 min-h-[100px]" placeholder="처리 방법과 일정을 등록하세요." rows={5} value={planText} onChange={(e) => setPlanText(e.target.value)} />
                     <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-3 shadow-sm shrink-0">

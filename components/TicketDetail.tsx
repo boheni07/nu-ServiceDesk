@@ -60,7 +60,7 @@ const TicketDetail: React.FC<Props> = ({
   const [postponeDate, setPostponeDate] = useState('');
   const [postponeReason, setPostponeReason] = useState('');
   const [rejectReason, setRejectReason] = useState('');
-  const [satisfaction, setSatisfaction] = useState(5);
+  const [satisfaction, setSatisfaction] = useState(3);
   const [completionFeedback, setCompletionFeedback] = useState('');
 
   useEffect(() => {
@@ -81,7 +81,7 @@ const TicketDetail: React.FC<Props> = ({
   }, [ticket.id]);
 
   useEffect(() => {
-    const isSupportUser = currentUser.role === UserRole.SUPPORT || currentUser.role === UserRole.ADMIN;
+    const isSupportUser = currentUser.role === UserRole.SUPPORT || currentUser.role === UserRole.SUPPORT_LEAD || currentUser.role === UserRole.ADMIN;
     const isPartOfProjectTeam = project.supportStaffIds.includes(currentUser.id) || currentUser.role === UserRole.ADMIN;
 
     if (

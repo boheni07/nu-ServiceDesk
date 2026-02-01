@@ -4,9 +4,9 @@ import { User, UserRole, Company, UserStatus, Ticket, Project } from '../types';
 import {
   Plus, Edit2, Trash2, X, Search, Shield, User as UserIcon,
   Mail, Phone, Smartphone, Lock, Eye, EyeOff, Building, MessageSquare,
-  Power
+  Power, Users
 } from 'lucide-react';
-import { formatPhoneNumber } from '../utils';
+import { formatPhoneNumber, getRoleLabel } from '../utils';
 import DeletionAlert from './DeletionAlert';
 
 interface Props {
@@ -18,9 +18,10 @@ interface Props {
   onUpdate: (id: string, userData: Partial<User>) => void;
   onDelete: (id: string) => void;
   agencyName: string;
+  supportTeams: string[];
 }
 
-const UserManagement: React.FC<Props> = ({ users, companies, tickets, projects, onAdd, onUpdate, onDelete, agencyName }) => {
+const UserManagement: React.FC<Props> = ({ users, companies, tickets, projects, onAdd, onUpdate, onDelete, agencyName, supportTeams }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -41,6 +42,7 @@ const UserManagement: React.FC<Props> = ({ users, companies, tickets, projects, 
     role: UserRole.CUSTOMER,
     status: UserStatus.ACTIVE,
     companyId: '',
+    team: '',
     remarks: ''
   });
 
@@ -62,6 +64,7 @@ const UserManagement: React.FC<Props> = ({ users, companies, tickets, projects, 
       role: UserRole.CUSTOMER,
       status: UserStatus.ACTIVE,
       companyId: '',
+      team: '',
       remarks: ''
     });
     setIsModalOpen(true);
@@ -79,6 +82,7 @@ const UserManagement: React.FC<Props> = ({ users, companies, tickets, projects, 
       role: user.role,
       status: user.status,
       companyId: user.companyId || '',
+      team: user.team || '',
       remarks: user.remarks || ''
     });
     setIsModalOpen(true);
@@ -92,6 +96,10 @@ const UserManagement: React.FC<Props> = ({ users, companies, tickets, projects, 
     }
     if (formData.role === UserRole.CUSTOMER && !formData.companyId) {
       alert('고객담당인 경우 고객사 선택은 필수입니다.');
+      return;
+    }
+    if ((formData.role === UserRole.SUPPORT || formData.role === UserRole.SUPPORT_LEAD) && !formData.team) {
+      alert('지원담당 또는 지원책임인 경우 소속 지원팀 선택은 필수입니다.');
       return;
     }
 
@@ -121,6 +129,11 @@ const UserManagement: React.FC<Props> = ({ users, companies, tickets, projects, 
     const managedProjects = projects.filter(p => p.supportStaffIds[0] === id);
 
     setDeleteDependencies([
+      ...(user.role === UserRole.ADMIN ? [{
+        label: '시스템 관리자 권한',
+        count: 1,
+        items: ['최상위 관리자 계정은 삭제할 수 없습니다.']
+      }] : []),
       {
         label: '요청한 티켓',
         count: requestedTickets.length,
@@ -150,28 +163,31 @@ const UserManagement: React.FC<Props> = ({ users, companies, tickets, projects, 
   const getRoleBadge = (role: UserRole) => {
     switch (role) {
       case UserRole.ADMIN: return 'bg-purple-100 text-purple-700 border-purple-200';
+      case UserRole.SUPPORT_LEAD: return 'bg-amber-100 text-amber-700 border-amber-200';
       case UserRole.SUPPORT: return 'bg-indigo-100 text-indigo-700 border-indigo-200';
       case UserRole.CUSTOMER: return 'bg-blue-100 text-blue-700 border-blue-200';
       default: return 'bg-slate-100 text-slate-600';
     }
   };
 
+
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <input
             type="text"
             placeholder="성명, ID, 역할 검색..."
-            className="pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-80 shadow-sm"
+            className="pl-10 pr-4 py-1.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-80 shadow-sm"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
         <button
           onClick={handleOpenAddModal}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 transition-all shadow-md"
+          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-1.5 rounded-lg font-bold hover:bg-blue-700 transition-all shadow-md"
         >
           <Plus size={18} /> 회원 추가
         </button>
@@ -181,12 +197,14 @@ const UserManagement: React.FC<Props> = ({ users, companies, tickets, projects, 
         <table className="w-full text-left">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 text-sm">
-              <th className="px-6 py-4 font-semibold">ID / 성명</th>
-              <th className="px-6 py-4 font-semibold">종류</th>
-              <th className="px-6 py-4 font-semibold">상태</th>
-              <th className="px-6 py-4 font-semibold">휴대폰</th>
-              <th className="px-6 py-4 font-semibold">소속 고객사</th>
-              <th className="px-6 py-4 font-semibold text-right">관리</th>
+              <th className="px-4 py-3 font-semibold">ID</th>
+              <th className="px-4 py-3 font-semibold">성명</th>
+              <th className="px-4 py-3 font-semibold">종류</th>
+              <th className="px-4 py-3 font-semibold">상태</th>
+              <th className="px-4 py-3 font-semibold">휴대폰</th>
+              <th className="px-4 py-3 font-semibold">이메일</th>
+              <th className="px-4 py-3 font-semibold">소속 고객사</th>
+              <th className="px-4 py-3 font-semibold">관리</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -194,36 +212,59 @@ const UserManagement: React.FC<Props> = ({ users, companies, tickets, projects, 
               const isActive = user.status === UserStatus.ACTIVE;
               return (
                 <tr key={user.id} className={`hover:bg-slate-50 transition-colors group text-sm ${!isActive ? 'opacity-60 grayscale-[0.5]' : ''}`}>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-2.5">
+                    <span className="text-sm text-slate-500 font-mono tracking-tighter">{user.loginId}</span>
+                  </td>
+                  <td className="px-4 py-2.5">
                     <div className="flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold ${isActive ? 'bg-slate-100 text-slate-500' : 'bg-slate-200 text-slate-400'}`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${isActive ? 'bg-slate-100 text-slate-500' : 'bg-slate-200 text-slate-400'}`}>
                         {user.name.charAt(0)}
                       </div>
-                      <div>
-                        <p className={`font-bold ${isActive ? 'text-slate-700' : 'text-slate-400'}`}>{user.name}</p>
-                        <p className="text-[11px] text-slate-400 font-mono tracking-tighter">{user.loginId}</p>
-                      </div>
+                      <span className={`font-bold ${isActive ? 'text-slate-700' : 'text-slate-400'}`}>{user.name}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-2.5">
                     <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1 w-fit ${getRoleBadge(user.role)}`}>
                       {user.role === UserRole.ADMIN && <Shield size={10} />}
-                      {user.role}
+                      {getRoleLabel(user.role)}
                     </span>
                   </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${isActive ? 'bg-green-100 text-green-700 border-green-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
-                      {user.status}
-                    </span>
+                  <td className="px-4 py-2.5">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const newStatus = user.status === UserStatus.ACTIVE ? UserStatus.INACTIVE : UserStatus.ACTIVE;
+
+                        // RULE: Activation - Company must be ACTIVE (only for CUSTOMER role)
+                        if (newStatus === UserStatus.ACTIVE && user.role === UserRole.CUSTOMER) {
+                          const userCompany = companies.find(c => c.id === user.companyId);
+                          if (userCompany && userCompany.status === '비활성') {
+                            alert(`[활성화 불가] 소속 고객사(${userCompany.name})가 비활성 상태입니다. 고객사를 먼저 활성화해주세요.`);
+                            return;
+                          }
+                        }
+
+                        onUpdate(user.id, { status: newStatus });
+                      }}
+                      disabled={!isActive && user.role === UserRole.CUSTOMER && companies.find(c => c.id === user.companyId)?.status === '비활성'}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all border shadow-sm flex items-center gap-1.5 ${isActive
+                        ? 'bg-green-500 text-white border-green-600 hover:bg-green-600'
+                        : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100 disabled:hover:bg-slate-100'
+                        }`}
+                    >
+                      <Power size={12} className={isActive ? 'text-white' : 'text-slate-400'} />
+                      {isActive ? '활성' : '비활성'}
+                    </button>
                   </td>
-                  <td className="px-6 py-4 text-slate-600">{user.mobile || '-'}</td>
-                  <td className="px-6 py-4 text-slate-600">
+                  <td className="px-4 py-2.5 text-slate-600">{user.mobile || '-'}</td>
+                  <td className="px-4 py-2.5 text-slate-600 truncate max-w-[150px]" title={user.email}>{user.email || '-'}</td>
+                  <td className="px-4 py-2.5 text-slate-600">
                     {user.role === UserRole.CUSTOMER
                       ? companies.find(c => c.id === user.companyId)?.name || 'N/A'
-                      : <span className="text-slate-600 font-medium">{agencyName}</span>}
+                      : <span className="text-slate-600 font-medium">{user.team || agencyName}</span>}
                   </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <td className="px-4 py-2.5">
+                    <div className="flex justify-start gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button onClick={() => handleOpenEditModal(user)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors" title="수정">
                         <Edit2 size={16} />
                       </button>
@@ -243,35 +284,21 @@ const UserManagement: React.FC<Props> = ({ users, companies, tickets, projects, 
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-10">
-              <h3 className="text-lg font-bold text-slate-800">{editingUser ? '회원 정보 수정' : '신규 회원 등록'}</h3>
+              <div className="flex items-center gap-3">
+                <h3 className="text-lg font-bold text-slate-800">{editingUser ? '회원 정보 수정' : '신규 회원 등록'}</h3>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border shadow-sm flex items-center gap-1.5 ${formData.status === UserStatus.ACTIVE
+                  ? 'bg-green-500 text-white border-green-600'
+                  : 'bg-slate-100 text-slate-500 border-slate-200'
+                  }`}>
+                  <Power size={10} className={formData.status === UserStatus.ACTIVE ? 'text-white' : 'text-slate-400'} />
+                  {formData.status === UserStatus.ACTIVE ? '활성' : '비활성'}
+                </span>
+              </div>
               <button onClick={() => setIsModalOpen(false)} className="p-1 hover:bg-slate-100 rounded-full"><X size={20} className="text-slate-400" /></button>
             </div>
 
             <form onSubmit={handleSubmit} className="overflow-y-auto custom-scrollbar">
               <div className="p-6 space-y-6">
-                {/* Status Selection */}
-                <div className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
-                  <div className="flex items-center gap-2">
-                    <Power size={18} className={formData.status === UserStatus.ACTIVE ? 'text-green-500' : 'text-slate-400'} />
-                    <span className="text-sm font-bold text-slate-700">회원 상태 설정</span>
-                  </div>
-                  <div className="flex bg-white p-1 rounded-lg border border-slate-200 shadow-sm">
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, status: UserStatus.ACTIVE })}
-                      className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${formData.status === UserStatus.ACTIVE ? 'bg-green-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
-                    >
-                      활성
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, status: UserStatus.INACTIVE })}
-                      className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${formData.status === UserStatus.INACTIVE ? 'bg-slate-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
-                    >
-                      비활성
-                    </button>
-                  </div>
-                </div>
 
                 {/* ID & Password Section */}
                 <div className="grid grid-cols-2 gap-4">
@@ -312,6 +339,8 @@ const UserManagement: React.FC<Props> = ({ users, companies, tickets, projects, 
                     </div>
                   </div>
                 </div>
+
+
 
                 {/* Personal Info */}
                 <div className="grid grid-cols-2 gap-4">
@@ -378,30 +407,74 @@ const UserManagement: React.FC<Props> = ({ users, companies, tickets, projects, 
                     <select
                       className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white"
                       value={formData.role}
-                      onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
+                      onChange={(e) => {
+                        const newRole = e.target.value as UserRole;
+                        let newTeam = formData.team;
+                        // Auto-select first team if switching to Support/Lead and no team selected
+                        if ((newRole === UserRole.SUPPORT || newRole === UserRole.SUPPORT_LEAD) && !newTeam && supportTeams.length > 0) {
+                          newTeam = supportTeams[0];
+                        }
+                        setFormData({ ...formData, role: newRole, team: newTeam });
+                      }}
                     >
                       <option value={UserRole.CUSTOMER}>고객담당</option>
                       <option value={UserRole.SUPPORT}>지원담당</option>
+                      <option value={UserRole.SUPPORT_LEAD}>지원책임</option>
                       <option value={UserRole.ADMIN}>관리자</option>
                     </select>
                   </div>
                   <div>
-                    <label className={`block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider ${formData.role === UserRole.CUSTOMER ? 'text-blue-600' : ''}`}>
-                      소속 고객사 {formData.role === UserRole.CUSTOMER ? '*' : ''}
-                    </label>
-                    <div className="relative">
-                      <Building className={`absolute left-3 top-1/2 -translate-y-1/2 ${formData.role === UserRole.CUSTOMER ? 'text-blue-400' : 'text-slate-300'}`} size={16} />
-                      <select
-                        disabled={formData.role !== UserRole.CUSTOMER}
-                        className={`w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white disabled:bg-slate-50 disabled:text-slate-400`}
-                        value={formData.companyId}
-                        onChange={(e) => setFormData({ ...formData, companyId: e.target.value })}
-                        required={formData.role === UserRole.CUSTOMER}
-                      >
-                        <option value="">고객사 선택</option>
-                        {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
-                    </div>
+                    {formData.role === UserRole.CUSTOMER ? (
+                      <>
+                        <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider text-blue-600">
+                          소속 고객사 *
+                        </label>
+                        <div className="relative">
+                          <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400" size={16} />
+                          <select
+                            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white"
+                            value={formData.companyId}
+                            onChange={(e) => setFormData({ ...formData, companyId: e.target.value })}
+                            required
+                          >
+                            <option value="">고객사 선택</option>
+                            {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                          </select>
+                        </div>
+                      </>
+                    ) : (formData.role === UserRole.SUPPORT || formData.role === UserRole.SUPPORT_LEAD) ? (
+                      <>
+                        <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider text-indigo-600">
+                          소속 지원팀
+                        </label>
+                        <div className="relative">
+                          <Users className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400" size={16} />
+                          <select
+                            required
+                            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-white"
+                            value={formData.team}
+                            onChange={(e) => setFormData({ ...formData, team: e.target.value })}
+                          >
+                            {supportTeams.map((team, idx) => <option key={idx} value={team}>{team}</option>)}
+                          </select>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">
+                          소속
+                        </label>
+                        <div className="relative">
+                          <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" size={16} />
+                          <input
+                            type="text"
+                            disabled
+                            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg bg-slate-50 text-slate-500 text-sm"
+                            value={agencyName}
+                          />
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -444,9 +517,19 @@ const UserManagement: React.FC<Props> = ({ users, companies, tickets, projects, 
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={confirmDelete}
+        onInactivate={() => {
+          if (deleteId) {
+            onUpdate(deleteId, { status: UserStatus.INACTIVE });
+            setDeleteId(null);
+          }
+        }}
         targetName={users.find(u => u.id === deleteId)?.name || ''}
         targetType="사용자"
         dependencies={deleteDependencies}
+        canDelete={
+          !deleteDependencies.some(d => d.count > 0) &&
+          users.find(u => u.id === deleteId)?.role !== UserRole.ADMIN
+        }
       />
     </div>
   );

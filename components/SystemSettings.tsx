@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AgencyInfo } from '../types';
-import { Building2, Save, User } from 'lucide-react';
+import { Building2, Save, User, Users, Plus, X } from 'lucide-react';
 
 interface Props {
     info: AgencyInfo;
@@ -41,7 +41,7 @@ const SystemSettings: React.FC<Props> = ({ info, onSave }) => {
         return value.replace(/[^0-9]/g, '').slice(0, 5);
     };
 
-    const handleChange = (field: keyof AgencyInfo, value: string) => {
+    const handleChange = (field: keyof AgencyInfo, value: any) => {
         let formattedValue = value;
         if (field === 'registrationNumber') formattedValue = formatBusinessNumber(value);
         if (field === 'phoneNumber') formattedValue = formatPhoneNumber(value);
@@ -181,6 +181,51 @@ const SystemSettings: React.FC<Props> = ({ info, onSave }) => {
                                 placeholder="기타 비고 사항..."
                             />
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+                <div className="p-8 border-b border-slate-100 bg-slate-50/50 flex items-center gap-4">
+                    <div className="p-3 bg-indigo-100 text-indigo-600 rounded-2xl">
+                        <Users size={24} />
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-black text-slate-900">지원팀 관리</h2>
+                        <p className="text-sm font-medium text-slate-500">티켓 처리를 담당할 부서 및 팀 명칭을 설정합니다 (최대 3개).</p>
+                    </div>
+                </div>
+
+                <div className="p-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <label className="block text-sm font-bold text-slate-500 mb-2 uppercase tracking-wider">지원팀 1</label>
+                        <input
+                            type="text"
+                            className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-slate-800 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                            placeholder="예: 기술지원 1팀"
+                            value={formData.supportTeam1 || ''}
+                            onChange={(e) => handleChange('supportTeam1', e.target.value)}
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-bold text-slate-500 mb-2 uppercase tracking-wider">지원팀 2</label>
+                        <input
+                            type="text"
+                            className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-slate-800 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                            placeholder="예: 기술지원 2팀"
+                            value={formData.supportTeam2 || ''}
+                            onChange={(e) => handleChange('supportTeam2', e.target.value)}
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-bold text-slate-500 mb-2 uppercase tracking-wider">지원팀 3</label>
+                        <input
+                            type="text"
+                            className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-slate-800 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                            placeholder="예: 개발팀"
+                            value={formData.supportTeam3 || ''}
+                            onChange={(e) => handleChange('supportTeam3', e.target.value)}
+                        />
                     </div>
                 </div>
             </div>

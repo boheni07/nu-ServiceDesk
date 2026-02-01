@@ -2,6 +2,7 @@
 export enum UserRole {
   ADMIN = 'ADMIN',
   SUPPORT = 'SUPPORT',
+  SUPPORT_LEAD = 'SUPPORT_LEAD',
   CUSTOMER = 'CUSTOMER'
 }
 
@@ -40,8 +41,11 @@ export enum IntakeMethod {
 export interface Company {
   id: string;
   name: string;
+  businessNumber?: string;
   representative?: string;
   industry?: string;
+  phone?: string;
+  zipCode?: string;
   address?: string;
   remarks?: string;
   status: CompanyStatus;
@@ -58,6 +62,7 @@ export interface User {
   role: UserRole;
   status: UserStatus;
   companyId?: string;
+  team?: string; // Support team name
   remarks?: string;
 }
 
@@ -70,6 +75,7 @@ export interface Project {
   startDate?: string;
   endDate?: string;
   description: string;
+  supportTeam?: string; // Team responsible for this project
   remarks?: string;
   status: ProjectStatus;
 }
@@ -130,4 +136,7 @@ export interface AgencyInfo {
   zipCode?: string;
   address?: string;
   notes?: string;
+  supportTeam1?: string;
+  supportTeam2?: string;
+  supportTeam3?: string;
 }

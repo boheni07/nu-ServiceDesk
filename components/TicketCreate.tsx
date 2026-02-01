@@ -18,7 +18,7 @@ const ALLOWED_EXTENSIONS = ".pdf,.doc,.docx,.xlsx,.xls,.pptx,.ppt,.png,.jpg,.jpe
 
 const TicketCreate: React.FC<Props> = ({ projects, currentUser, users, companies, initialData, onSubmit, onCancel }) => {
   const isAdmin = currentUser.role === UserRole.ADMIN;
-  const isSupport = currentUser.role === UserRole.SUPPORT;
+  const isSupport = currentUser.role === UserRole.SUPPORT || currentUser.role === UserRole.SUPPORT_LEAD;
 
   const filteredProjects = useMemo(() => {
     if (isAdmin) return projects;
