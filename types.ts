@@ -140,3 +140,5 @@ export interface AgencyInfo {
   supportTeam2?: string;
   supportTeam3?: string;
 }
+
+export const AGENCY_COMPANY_ID = 'agency-root-company';

@@ -17,6 +17,7 @@ import SystemSettings from './components/SystemSettings';
 import Dashboard from './components/Dashboard';
 import PerformanceReport from './components/PerformanceReport';
 import ProjectPerformance from './components/ProjectPerformance';
+import SuccessModal from './components/SuccessModal';
 
 const MainApp: React.FC = () => {
   const { currentUser, setCurrentUser } = useAuth();
@@ -58,6 +59,7 @@ const MainApp: React.FC = () => {
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showSaveSuccess, setShowSaveSuccess] = useState(false);
 
   const selectedTicket = useMemo(() =>
     tickets.find(t => t.id === selectedTicketId), [tickets, selectedTicketId]
@@ -172,8 +174,15 @@ const MainApp: React.FC = () => {
         )}
         {view === 'report' && (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPPORT_LEAD) && <PerformanceReport tickets={filteredTickets} projects={filteredProjects} users={users} history={history} currentUser={currentUser} companies={companies} />}
         {view === 'projectReport' && <ProjectPerformance tickets={filteredTickets} projects={filteredProjects} users={users} history={history} currentUser={currentUser} companies={companies} />}
-        {view === 'settings' && currentUser.role === UserRole.ADMIN && <SystemSettings info={agencyInfo} onSave={(info) => { setAgencyInfo(info); alert('환경 설정이 저장되었습니다.'); }} />}
+        {view === 'settings' && currentUser.role === UserRole.ADMIN && <SystemSettings info={agencyInfo} onSave={async (info) => { await setAgencyInfo(info); setShowSaveSuccess(true); }} />}
       </div>
+
+      <SuccessModal
+        isOpen={showSaveSuccess}
+        onClose={() => setShowSaveSuccess(false)}
+        title="저장 완료"
+        message="환경 설정이 성공적으로 저장되었습니다."
+      />
     </Layout>
   );
 };

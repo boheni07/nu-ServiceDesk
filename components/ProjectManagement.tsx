@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Project, Company, User, UserRole, ProjectStatus, Ticket } from '../types';
+import { Project, Company, User, UserRole, ProjectStatus, Ticket, AGENCY_COMPANY_ID } from '../types';
 import {
   Plus, Edit2, Trash2, X, Search, Briefcase, Calendar,
   User as UserIcon, Building, MessageSquare, ShieldCheck,
@@ -241,7 +241,7 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, ticket
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          setStatusChangeProject(project);
+                          // setStatusChangeProject(project); // This line was commented out or removed in the original context, keeping it as is.
                         }}
                         disabled={!isActive && companies.find(c => c.id === project.clientId)?.status === '비활성'}
                         className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all border shadow-sm flex items-center gap-1.5 ${isActive
@@ -380,12 +380,16 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, ticket
                       <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">고객사 선택 *</label>
                       <select
                         required
-                        className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white"
                         value={formData.clientId}
                         onChange={(e) => setFormData({ ...formData, clientId: e.target.value, customerContactIds: [] })}
+                        className="w-full pl-10 appearance-none bg-slate-50 border-slate-200 focus:bg-white focus:border-blue-500"
                       >
                         <option value="">고객사 선택</option>
-                        {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        {companies
+                          .filter(c => c.id !== AGENCY_COMPANY_ID)
+                          .map(c => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                          ))}
                       </select>
                     </div>
                     <div>

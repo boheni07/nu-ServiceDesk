@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Company, CompanyStatus, Project, Ticket, User, UserStatus, ProjectStatus } from '../types';
+import { Company, CompanyStatus, AGENCY_COMPANY_ID, Project, Ticket, User, UserStatus, ProjectStatus } from '../types';
 import { Building2, Plus, Edit2, Trash2, X, Search, MapPin, Briefcase, UserCircle, Power, Check, Phone, FileText, Map as MapIcon } from 'lucide-react';
 import DeletionAlert from './DeletionAlert';
 import StatusChangeAlert from './StatusChangeAlert';
@@ -297,13 +296,18 @@ const CompanyManagement: React.FC<Props> = ({ companies, users, projects, ticket
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
+                            if (company.id === AGENCY_COMPANY_ID) {
+                              alert('시스템 운영 기관 정보는 [환경 설정]에서 관리하세요.');
+                              return;
+                            }
                             const newStatus = company.status === CompanyStatus.ACTIVE ? CompanyStatus.INACTIVE : CompanyStatus.ACTIVE;
                             handleRequestStatusChange(company.id, newStatus);
                           }}
                           className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all border shadow-sm flex items-center gap-1.5 ${isActive
                             ? 'bg-green-500 text-white border-green-600 hover:bg-green-600'
-                            : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200'
-                            }`}
+                            : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200 active:scale-95'
+                            } ${company.id === AGENCY_COMPANY_ID ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          disabled={company.id === AGENCY_COMPANY_ID}
                         >
                           <Power size={12} className={isActive ? 'text-white' : 'text-slate-400'} />
                           {isActive ? '활성' : '비활성'}
@@ -313,16 +317,27 @@ const CompanyManagement: React.FC<Props> = ({ companies, users, projects, ticket
                     <td className="px-4 py-2.5">
                       <div className="flex justify-start gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
-                          onClick={() => handleOpenEditModal(company)}
-                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                          onClick={() => {
+                            if (company.id === AGENCY_COMPANY_ID) {
+                              alert('시스템 운영 기관 정보는 수정할 수 없습니다.');
+                              return;
+                            }
+                            handleOpenEditModal(company);
+                          }}
+                          className={`p-1.5 rounded-md transition-colors ${company.id === AGENCY_COMPANY_ID ? 'text-slate-300 cursor-not-allowed' : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50'}`}
                           title="수정"
+                          disabled={company.id === AGENCY_COMPANY_ID}
                         >
                           <Edit2 size={16} />
                         </button>
                         <button
-                          onClick={() => handleRequestDelete(company.id)}
-                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                          onClick={() => {
+                            if (company.id === AGENCY_COMPANY_ID) return;
+                            handleRequestDelete(company.id);
+                          }}
+                          className={`p-1.5 rounded-md transition-colors ${company.id === AGENCY_COMPANY_ID ? 'text-slate-300 cursor-not-allowed' : 'text-slate-400 hover:text-red-600 hover:bg-red-50'}`}
                           title="삭제"
+                          disabled={company.id === AGENCY_COMPANY_ID}
                         >
                           <Trash2 size={16} />
                         </button>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { User, UserRole, Ticket, TicketStatus, Project, Company, Comment, HistoryEntry, AgencyInfo, ProjectStatus, UserStatus, CompanyStatus } from '../types';
+import { User, UserRole, Ticket, TicketStatus, Project, Company, Comment, HistoryEntry, AgencyInfo, ProjectStatus, UserStatus, CompanyStatus, AGENCY_COMPANY_ID } from '../types';
 import { supabase } from '../lib/supabase';
 import { mapUser } from '../lib/dbMappers';
 import { useTickets } from './useTickets';
@@ -54,16 +54,45 @@ export const useServiceDesk = (currentUser: User | null) => {
 
     // Initial Load
     const fetchData = useCallback(async () => {
-        await Promise.all([
+        // Parallel fetch
+        const [t, p, u, c, h, cm, a] = await Promise.all([
             fetchTickets(),
             fetchProjects(),
             fetchUsers(),
             fetchCompanies(),
             fetchHistory(),
             fetchComments(),
-            fetchAgencyInfo()
+            api.agencyInfo.get()
         ]);
-    }, [fetchTickets, fetchProjects, fetchUsers, fetchCompanies, fetchHistory, fetchComments, fetchAgencyInfo]);
+
+        // Specific Agency Sync Logic
+        if (a) {
+            setAgencyInfoLocal(a);
+            // Check if Agency Company exists
+            const agencyCompExists = c && c.some((comp: Company) => comp.id === AGENCY_COMPANY_ID);
+
+            if (!agencyCompExists) {
+                console.log("Agency Company missing, auto-creating...");
+                const agencyCompany: Company = {
+                    id: AGENCY_COMPANY_ID,
+                    name: a.name,
+                    representative: a.ceoName,
+                    phone: a.phoneNumber,
+                    address: a.address ? `${a.zipCode ? `(${a.zipCode}) ` : ''}${a.address}` : undefined,
+                    industry: a.industry,
+                    remarks: 'System Agency (Auto-generated)',
+                    status: CompanyStatus.ACTIVE
+                };
+
+                // Add to DB
+                await supabase.from('companies').upsert(mapCompanyToDB(agencyCompany));
+                // Add to local state (c is the array we just fetched, but we called setCompanies inside fetchCompanies. 
+                // We need to update the state again if we add it.)
+                setCompanies(prev => [...prev, agencyCompany]);
+            }
+        }
+
+    }, [fetchTickets, fetchProjects, fetchUsers, fetchCompanies, fetchHistory, fetchComments]);
 
     useEffect(() => {
         // Initial fetch only if not already loading and empty? 
@@ -107,8 +136,9 @@ export const useServiceDesk = (currentUser: User | null) => {
     }, [deleteTicketApi, fetchHistory]);
 
     const addComment = useCallback(async (commentData: Omit<Comment, 'id' | 'timestamp'>) => {
-        if (!currentUser) return;
+        if (!currentUser) throw new Error('로그인이 필요합니다.');
         const dbComment = {
+            id: crypto.randomUUID(),
             ticket_id: commentData.ticketId,
             author_id: commentData.authorId,
             author_name: commentData.authorName,
@@ -164,6 +194,29 @@ export const useServiceDesk = (currentUser: User | null) => {
     const setAgencyInfo = useCallback(async (newInfo: AgencyInfo) => {
         await api.agencyInfo.upsert(mapAgencyInfoToDB(newInfo)); // Map inside api
         setAgencyInfoLocal(newInfo);
+
+        // Sync to Company Table
+        const agencyCompany: Company = {
+            id: AGENCY_COMPANY_ID,
+            name: newInfo.name,
+            representative: newInfo.ceoName,
+            phone: newInfo.phoneNumber,
+            address: newInfo.address ? `${newInfo.zipCode ? `(${newInfo.zipCode}) ` : ''}${newInfo.address}` : undefined,
+            industry: newInfo.industry,
+            remarks: 'System Agency (Do Not Delete)',
+            status: CompanyStatus.ACTIVE
+        };
+        await api.companies.create(agencyCompany); // Using create for upsert usually handled by repo, or check implementation. 
+        // NOTE: api.companies.create might strictly be insert. Let's use direct supabase for safety if api doesn't supportupsert.
+        // Assuming api.companies.create does upsert or we use supabase directly here for clarity.
+        // Actually, let's use supabase directly to ensure ID constraint is handled as UPSERT.
+        await supabase.from('companies').upsert(mapCompanyToDB(agencyCompany));
+        setCompanies(prev => {
+            const exists = prev.find(c => c.id === AGENCY_COMPANY_ID);
+            if (exists) return prev.map(c => c.id === AGENCY_COMPANY_ID ? agencyCompany : c);
+            return [...prev, agencyCompany];
+        });
+
     }, []);
 
     // Filtered Data
@@ -229,24 +282,50 @@ export const useServiceDesk = (currentUser: User | null) => {
         const { error: uErr } = await supabase.from('app_users').delete().neq('login_id', 'admin');
         handleError(uErr, 'Users');
 
-        // 3. Delete ALL Companies (Now safe because Admin is unlinked)
-        const { error: compErr } = await supabase.from('companies').delete().neq('id', 'keep_none');
+        // 3. Delete ALL Companies (Except Agency Company and 'keep_none')
+        const { error: compErr } = await supabase.from('companies').delete()
+            .neq('id', 'keep_none')
+            .neq('id', AGENCY_COMPANY_ID); // Explicitly protect the Fixed Agency ID
         handleError(compErr, 'Companies');
+
+        // 3.5 Ensure Agency Company exists (Restore/Create from Agency Info)
+        const currentAgencyInfo = await api.agencyInfo.get();
+        if (currentAgencyInfo) {
+            const agencyCompany: Company = {
+                id: AGENCY_COMPANY_ID,
+                name: currentAgencyInfo.name,
+                representative: currentAgencyInfo.ceoName,
+                phone: currentAgencyInfo.phoneNumber,
+                address: currentAgencyInfo.address,
+                industry: currentAgencyInfo.industry,
+                remarks: 'System Agency (Auto-generated)',
+                status: CompanyStatus.ACTIVE
+            };
+            // Upsert directly to DB
+            await supabase.from('companies').upsert(mapCompanyToDB(agencyCompany));
+
+            // 3.6 Link Admin to Agency Company
+            await supabase.from('app_users')
+                .update({ company_id: AGENCY_COMPANY_ID })
+                .eq('login_id', 'admin');
+        }
 
         // Update Local State
         setHistory([]);
         setComments([]);
         setTickets([]);
         setProjects([]);
+        setUsers([]); // Will refetch below
+        setCompanies([]); // Will refetch below
 
-        // Fetch remaining (Admin only)
+        // Fetch remaining (Admin only + Agency Company)
         const { data: userData, error: refetchUErr } = await supabase.from('app_users').select('*');
         if (refetchUErr) handleError(refetchUErr, 'Refetch Users');
         if (userData) setUsers(userData.map(mapUser));
 
         const { data: companyData, error: refetchCErr } = await supabase.from('companies').select('*');
         if (refetchCErr) handleError(refetchCErr, 'Refetch Companies');
-        if (companyData) setCompanies(companyData);
+        if (companyData) setCompanies(companyData); // Use mapper if needed, but looks like direct assign in original
 
         console.log("System reset complete.");
     }, [setHistory, setComments, setTickets, setProjects, setUsers, setCompanies]);
@@ -262,7 +341,8 @@ export const useServiceDesk = (currentUser: User | null) => {
 
             // Map to DB
             const companyDBs = initialCompanies.map(mapCompanyToDB);
-            const { error: cErr } = await supabase.from('companies').insert(companyDBs);
+            // Use upsert because AGENCY_COMPANY_ID might have been preserved by resetSystem
+            const { error: cErr } = await supabase.from('companies').upsert(companyDBs);
             if (cErr) throw new Error('Company generation failed: ' + cErr.message);
 
             // 1.5 Relink Admin to 'c1' (Nu Technology) if it exists in samples
@@ -304,7 +384,9 @@ export const useServiceDesk = (currentUser: User | null) => {
             if (hErr) throw new Error('History generation failed: ' + hErr.message);
 
             // Agency Info
-            if (initialAgencyInfo) {
+            // Only insert if not exists to preserve user settings during sample generation
+            const existingAgencyInfo = await api.agencyInfo.get();
+            if (!existingAgencyInfo && initialAgencyInfo) {
                 await api.agencyInfo.upsert(mapAgencyInfoToDB(initialAgencyInfo));
             }
 

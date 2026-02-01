@@ -1,5 +1,6 @@
+
 import React, { useState, useMemo } from 'react';
-import { Project, User, Ticket, UserRole, IntakeMethod, Company } from '../types';
+import { Project, User, Ticket, UserRole, IntakeMethod, Company, AGENCY_COMPANY_ID } from '../types';
 import { addBusinessDays } from '../utils';
 import { Paperclip, Calendar, X, Check, Phone, HelpCircle, FileText, Building2, User as UserIcon, Mail } from 'lucide-react';
 import { format, isBefore, startOfDay } from 'date-fns';
@@ -49,7 +50,8 @@ const TicketCreate: React.FC<Props> = ({ projects, currentUser, users, companies
     const project = projects.find(p => p.id === projectId);
     if (!project) return null;
 
-    const company = companies.find(c => c.id === project.clientId);
+    // Filter out the agency company if it's the client for the project
+    const company = companies.filter(c => c.id !== AGENCY_COMPANY_ID).find(c => c.id === project.clientId);
     const contacts = project.customerContactIds.map(id => users.find(u => u.id === id)).filter(Boolean) as User[];
 
     return { project, company, contacts };

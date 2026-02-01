@@ -26,7 +26,7 @@ interface Props {
   comments: Comment[];
   currentUser: User;
   onStatusUpdate: (ticketId: string, status: TicketStatus, updates?: Partial<Ticket>, note?: string) => void;
-  onAddComment: (comment: Omit<Comment, 'id' | 'timestamp'>) => void;
+  onAddComment: (comment: Omit<Comment, 'id' | 'timestamp'>) => Promise<void>;
   onBack: () => void;
 }
 
@@ -50,6 +50,7 @@ const TicketDetail: React.FC<Props> = ({
 
   const [commentText, setCommentText] = useState('');
   const [commentFiles, setCommentFiles] = useState<File[]>([]);
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
   const [showPostponeModal, setShowPostponeModal] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
@@ -139,17 +140,27 @@ const TicketDetail: React.FC<Props> = ({
     setPlanFiles([]);
   };
 
-  const handleAddComment = () => {
+  const handleAddComment = async () => {
     if (!commentText.trim() && commentFiles.length === 0) return;
-    onAddComment({
-      ticketId: ticket.id,
-      authorId: currentUser.id,
-      authorName: currentUser.name,
-      content: commentText,
-      attachments: commentFiles.map(f => f.name)
-    });
-    setCommentText('');
-    setCommentFiles([]);
+    if (isSubmittingComment) return;
+
+    try {
+      setIsSubmittingComment(true);
+      await onAddComment({
+        ticketId: ticket.id,
+        authorId: currentUser.id,
+        authorName: currentUser.name,
+        content: commentText,
+        attachments: commentFiles.map(f => f.name)
+      });
+      setCommentText('');
+      setCommentFiles([]);
+    } catch (error: any) {
+      console.error(error);
+      alert(`의견 전송에 실패했습니다: ${error.message}`);
+    } finally {
+      setIsSubmittingComment(false);
+    }
   };
 
   const handlePostponeRequest = () => {

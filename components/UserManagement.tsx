@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { User, UserRole, Company, UserStatus, Ticket, Project } from '../types';
+import { User, UserRole, Company, UserStatus, Ticket, Project, AGENCY_COMPANY_ID } from '../types';
 import {
   Plus, Edit2, Trash2, X, Search, Shield, User as UserIcon,
   Mail, Phone, Smartphone, Lock, Eye, EyeOff, Building, MessageSquare,
@@ -105,7 +105,14 @@ const UserManagement: React.FC<Props> = ({ users, companies, tickets, projects, 
 
     const submissionData = { ...formData };
     if (formData.role !== UserRole.CUSTOMER) {
-      submissionData.companyId = undefined;
+      // Auto-link to Agency Company
+      const agencyCompany = companies.find(c => c.name === agencyName);
+      if (agencyCompany) {
+        submissionData.companyId = agencyCompany.id;
+      } else {
+        // Fallback or warning? For now, keep it undefined if not found, but it should exist.
+        submissionData.companyId = undefined;
+      }
     }
 
     if (editingUser) {
@@ -268,7 +275,15 @@ const UserManagement: React.FC<Props> = ({ users, companies, tickets, projects, 
                       <button onClick={() => handleOpenEditModal(user)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors" title="수정">
                         <Edit2 size={16} />
                       </button>
-                      <button onClick={() => handleRequestDelete(user.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" title="삭제">
+                      <button
+                        onClick={() => {
+                          if (user.role === UserRole.ADMIN) return;
+                          handleRequestDelete(user.id);
+                        }}
+                        className={`p-1.5 rounded-md transition-colors ${user.role === UserRole.ADMIN ? 'text-slate-300 cursor-not-allowed' : 'text-slate-400 hover:text-red-600 hover:bg-red-50'}`}
+                        title={user.role === UserRole.ADMIN ? "관리자 계정은 삭제할 수 없습니다" : "삭제"}
+                        disabled={user.role === UserRole.ADMIN}
+                      >
                         <Trash2 size={16} />
                       </button>
                     </div>
@@ -438,7 +453,9 @@ const UserManagement: React.FC<Props> = ({ users, companies, tickets, projects, 
                             required
                           >
                             <option value="">고객사 선택</option>
-                            {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            {companies
+                              .filter(c => c.id !== AGENCY_COMPANY_ID)
+                              .map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                           </select>
                         </div>
                       </>

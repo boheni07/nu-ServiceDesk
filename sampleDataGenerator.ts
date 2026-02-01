@@ -1,10 +1,10 @@
-import { Company, User, Project, Ticket, TicketStatus, UserRole, UserStatus, CompanyStatus, ProjectStatus, HistoryEntry, AgencyInfo } from './types';
+import { Company, User, Project, Ticket, TicketStatus, UserRole, UserStatus, CompanyStatus, ProjectStatus, HistoryEntry, AgencyInfo, AGENCY_COMPANY_ID } from './types';
 import { addDays, format } from 'date-fns';
 import { addBusinessDays } from './utils';
 
 // 1. Initial Sample Companies (5 items)
 export const initialCompanies: Company[] = [
-    { id: 'c1', name: '누테크놀로지', businessNumber: '123-45-67890', representative: '누대표', industry: 'IT 서비스', phone: '02-1234-5678', zipCode: '06242', address: '서울시 강남구 테헤란로 123', remarks: '본사 (시스템 운영)', status: CompanyStatus.ACTIVE },
+    { id: AGENCY_COMPANY_ID, name: 'NuBiz', businessNumber: '123-45-67890', representative: '누대표', industry: 'IT 서비스', phone: '02-1234-5678', zipCode: '06242', address: '서울시 강남구 테헤란로 123', remarks: '본사 (시스템 운영)', status: CompanyStatus.ACTIVE },
     { id: 'c2', name: '(주)미래제조', businessNumber: '234-56-78901', representative: '김미래', industry: '첨단 제조업', phone: '031-456-7890', zipCode: '13487', address: '경기도 성남시 판교로 456', remarks: '핵심 고객사 (연간 계약)', status: CompanyStatus.ACTIVE },
     { id: 'c3', name: '글로벌유통', businessNumber: '345-67-89012', representative: '이유통', industry: '물류/유통', phone: '051-789-0123', zipCode: '48058', address: '부산시 해운대구 센텀중앙로 78', remarks: '전략적 파트너', status: CompanyStatus.ACTIVE },
     { id: 'c4', name: '한국금융솔루션', businessNumber: '456-78-90123', representative: '박금융', industry: '핀테크/금융', phone: '02-9999-8888', zipCode: '07325', address: '서울시 영등포구 여의대로 99', remarks: '보안 중시 고객', status: CompanyStatus.ACTIVE },
@@ -13,9 +13,9 @@ export const initialCompanies: Company[] = [
 
 // 2. Initial Sample Users (5 items)
 export const initialUsers: User[] = [
-    { id: 'u1', loginId: 'admin', password: 'password123', name: '관리자(Admin)', role: UserRole.ADMIN, status: UserStatus.ACTIVE, mobile: '010-1111-2222', email: 'admin@nu.com', companyId: 'c1' },
-    { id: 'u2', loginId: 'support1', password: 'password123', name: '지원팀장(Support)', role: UserRole.SUPPORT_LEAD, status: UserStatus.ACTIVE, mobile: '010-3333-4444', email: 'support1@nu.com', companyId: 'c1', team: '기술지원 1팀' },
-    { id: 'u3', loginId: 'support2', password: 'password123', name: '엔지니어(Tech)', role: UserRole.SUPPORT, status: UserStatus.ACTIVE, mobile: '010-7777-8888', email: 'support2@nu.com', companyId: 'c1', team: '기술지원 2팀' },
+    { id: 'u1', loginId: 'admin', password: 'password123', name: '관리자(Admin)', role: UserRole.ADMIN, status: UserStatus.ACTIVE, mobile: '010-1111-2222', email: 'admin@nu.com', companyId: AGENCY_COMPANY_ID },
+    { id: 'u2', loginId: 'support1', password: 'password123', name: '지원팀장(Support)', role: UserRole.SUPPORT_LEAD, status: UserStatus.ACTIVE, mobile: '010-3333-4444', email: 'support1@nu.com', companyId: AGENCY_COMPANY_ID, team: '기술지원 1팀' },
+    { id: 'u3', loginId: 'support2', password: 'password123', name: '엔지니어(Tech)', role: UserRole.SUPPORT, status: UserStatus.ACTIVE, mobile: '010-7777-8888', email: 'support2@nu.com', companyId: AGENCY_COMPANY_ID, team: '기술지원 2팀' },
     { id: 'u4', loginId: 'customer1', password: 'password123', name: '김고객(Customer)', role: UserRole.CUSTOMER, status: UserStatus.ACTIVE, companyId: 'c2', phone: '02-123-4567', mobile: '010-5555-6666', email: 'customer1@mirai.com' },
     { id: 'u5', loginId: 'customer2', password: 'password123', name: '박파트너(Customer)', role: UserRole.CUSTOMER, status: UserStatus.ACTIVE, companyId: 'c3', phone: '051-987-6543', mobile: '010-9999-0000', email: 'customer2@global.com' },
 ];

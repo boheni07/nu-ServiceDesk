@@ -178,7 +178,7 @@ const ProjectPerformance: React.FC<Props> = ({ tickets, projects, users, history
                         <Briefcase size={28} className="text-slate-700" />
                         <div className="relative group">
                             <select
-                                className="appearance-none bg-transparent text-3xl font-black text-slate-900 pr-8 outline-none cursor-pointer hover:text-blue-600 transition-colors"
+                                className="appearance-none bg-transparent text-2xl font-black text-slate-900 pr-8 outline-none cursor-pointer hover:text-blue-600 transition-colors max-w-[30vw] truncate"
                                 value={selectedProjectId}
                                 onChange={(e) => setSelectedProjectId(e.target.value)}
                             >

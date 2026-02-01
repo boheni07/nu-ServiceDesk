@@ -86,7 +86,7 @@ const TicketSidebar: React.FC<Props> = ({ project, users, supportStaff, history 
 
             <div className="bg-slate-900 rounded-2xl shadow-xl p-5 text-slate-100 overflow-hidden relative border border-slate-800">
                 <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2"><History size={14} className="text-blue-400" /> Activity History</h3>
-                <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-1">
+                <div className="space-y-2">
                     {history.map((h) => {
                         const { label, color } = getActionDetails(h);
                         return (

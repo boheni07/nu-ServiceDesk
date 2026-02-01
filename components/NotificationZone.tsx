@@ -32,7 +32,7 @@ const NotificationZone: React.FC<NotificationZoneProps> = ({
 }) => {
 
     // --- Notification Types ---
-    type NotificationType = 'POSTPONE_REQ' | 'COMPLETION_REQ' | 'REJECTED' | 'APPROVED_COMPLETION' | 'APPROVED_POSTPONE';
+    type NotificationType = 'POSTPONE_REQ' | 'COMPLETION_REQ' | 'REJECTED' | 'REJECTED_POSTPONE' | 'REJECTED_COMPLETION' | 'APPROVED_COMPLETION' | 'APPROVED_POSTPONE';
 
     interface NotificationItem {
         ticket: Ticket;
@@ -55,20 +55,36 @@ const NotificationZone: React.FC<NotificationZoneProps> = ({
         }
 
         // 2. Rejections (Active)
-        // If it has a rejection reason and is NOT currently in a requested state (which would mean a re-request)
         if (t.rejectionReason && t.status === TicketStatus.IN_PROGRESS) {
-            acc.push({ ticket: t, type: 'REJECTED', timestamp: new Date(t.updatedAt || t.createdAt) });
+            const ticketHistory = history
+                .filter(h => h.ticketId === t.id)
+                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+            let type: NotificationType = 'REJECTED';
+            // Try to infer rejection type from previous history state
+            if (ticketHistory.length >= 2) {
+                // ticketHistory[0] is likely the current state (IN_PROGRESS) or the rejection event
+                // ticketHistory[1] should be the Previous State (REQUESTED)
+                const prevStatus = ticketHistory[1].status;
+                if (prevStatus === TicketStatus.POSTPONE_REQUESTED) type = 'REJECTED_POSTPONE';
+                else if (prevStatus === TicketStatus.COMPLETION_REQUESTED) type = 'REJECTED_COMPLETION';
+            } else {
+                // Fallback inference if history is missing (rare):
+                // If postponeDate is missing but rejectionReason exists, likely postpone rejection? 
+                // Difficult to say for sure vs completion rejection. 
+                // But typically Postpone Request keeps postponeDate while pending? No, handled in UI.
+            }
+
+            acc.push({ ticket: t, type, timestamp: new Date(t.updatedAt || t.createdAt) });
             return acc;
         }
 
         // 3. Approvals (Recent History)
-        // We need to check history for recent relevant transitions
         const ticketHistory = history
             .filter(h => h.ticketId === t.id)
             .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
         if (ticketHistory.length === 0) {
-            // Fallback for Completion if no history (e.g. initial load or migration)
             if (t.status === TicketStatus.COMPLETED) {
                 const updated = new Date(t.updatedAt || t.createdAt);
                 if (updated > threeDaysAgo) {
@@ -81,22 +97,17 @@ const NotificationZone: React.FC<NotificationZoneProps> = ({
         const latestEntry = ticketHistory[0];
         const latestDate = new Date(latestEntry.timestamp);
 
-        // Only consider recent events
         if (latestDate < threeDaysAgo) return acc;
 
-        // A. Approved Completion
         if (t.status === TicketStatus.COMPLETED && latestEntry.status === TicketStatus.COMPLETED) {
             acc.push({ ticket: t, type: 'APPROVED_COMPLETION', timestamp: latestDate });
             return acc;
         }
 
-        // B. Approved Postpone
-        // Current status is active (IN_PROGRESS, etc), NOT Postpone Requested, NO Rejection Reason
-        // AND Previous status was POSTPONE_REQUESTED
         if (
             !t.rejectionReason &&
             t.status !== TicketStatus.POSTPONE_REQUESTED &&
-            t.status !== TicketStatus.COMPLETED && // Approved Postpone keeps it active
+            t.status !== TicketStatus.COMPLETED &&
             ticketHistory.length >= 2
         ) {
             const prevEntry = ticketHistory[1];
@@ -118,10 +129,14 @@ const NotificationZone: React.FC<NotificationZoneProps> = ({
                 return { label: '완료 요청', icon: AlertCircle, color: 'text-blue-600', bg: 'bg-blue-100' };
             case 'REJECTED':
                 return { label: '반려', icon: XCircle, color: 'text-rose-600', bg: 'bg-rose-100' };
+            case 'REJECTED_POSTPONE':
+                return { label: '연기요청 반려', icon: XCircle, color: 'text-rose-600', bg: 'bg-rose-100' };
+            case 'REJECTED_COMPLETION':
+                return { label: '완료요청 반려', icon: XCircle, color: 'text-rose-600', bg: 'bg-rose-100' };
             case 'APPROVED_COMPLETION':
-                return { label: '승인(완료)', icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-100' };
+                return { label: '완료요청 승인', icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-100' };
             case 'APPROVED_POSTPONE':
-                return { label: '승인(연기)', icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-100' };
+                return { label: '연기요청 승인', icon: CheckCircle2, color: 'text-emerald-600', bg: 'bg-emerald-100' };
             default:
                 return { label: '알림', icon: Bell, color: 'text-slate-600', bg: 'bg-slate-100' };
         }

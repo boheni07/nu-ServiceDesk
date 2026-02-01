@@ -223,7 +223,7 @@ const PerformanceReport: React.FC<Props> = ({ tickets, projects, users, history,
                     <div className="flex items-center gap-2 mb-1">
                         <span className="bg-blue-600 text-[10px] font-black text-white px-2 py-0.5 rounded uppercase tracking-widest">Analytics</span>
                     </div>
-                    <h2 className="text-3xl font-black text-slate-900 tracking-tight">종합 실적 및 성과</h2>
+                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">종합 실적 및 성과</h2>
                     <p className="text-slate-500 text-sm mt-1 font-medium">전체 프로젝트의 운영 성과와 효율성을 분석합니다.</p>
                 </div>
 
