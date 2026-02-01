@@ -11,6 +11,7 @@ import TicketCreate from './components/TicketCreate';
 import CompanyManagement from './components/CompanyManagement';
 import UserManagement from './components/UserManagement';
 import ProjectManagement from './components/ProjectManagement';
+import OperationManagement from './components/OperationManagement';
 import ProfileEdit from './components/ProfileEdit';
 import DataManagement from './components/DataManagement';
 import SystemSettings from './components/SystemSettings';
@@ -55,7 +56,7 @@ const MainApp: React.FC = () => {
     loading
   } = data;
 
-  const [view, setView] = useState<'dashboard' | 'list' | 'create' | 'edit' | 'detail' | 'companies' | 'users' | 'projects' | 'profile' | 'dataManagement' | 'settings' | 'report' | 'projectReport'>('dashboard');
+  const [view, setView] = useState<'dashboard' | 'list' | 'create' | 'edit' | 'detail' | 'companies' | 'users' | 'projects' | 'operationManagement' | 'profile' | 'dataManagement' | 'settings' | 'report' | 'projectReport'>('dashboard');
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -138,6 +139,7 @@ const MainApp: React.FC = () => {
             {view === 'companies' && 'Company Management'}
             {view === 'users' && 'User Management'}
             {view === 'projects' && 'Project Management'}
+            {view === 'operationManagement' && 'Operating Information'}
             {view === 'profile' && 'My Account Settings'}
             {view === 'dataManagement' && 'Data Management'}
             {view === 'report' && 'Performance Report'}
@@ -146,7 +148,7 @@ const MainApp: React.FC = () => {
           </h2>
           <p className="text-slate-500 text-sm sm:text-base mt-1">안녕하세요, {currentUser.name}님! {view === 'list' && '현재 활성화된 티켓 리스트입니다.'}</p>
         </div>
-        {(view === 'detail' || view === 'edit' || view === 'dataManagement' || view === 'settings' || view === 'report' || view === 'projectReport') && (
+        {(view === 'detail' || view === 'edit' || view === 'dataManagement' || view === 'settings' || view === 'report' || view === 'projectReport' || view === 'operationManagement') && (
           <button onClick={() => changeView('list')} className="flex items-center gap-2 text-slate-500 hover:text-blue-600 font-bold px-4 py-2 rounded-xl border border-slate-200 bg-white shadow-sm transition-all self-start">
             <span className="flex items-center gap-2">← Back to List</span>
           </button>
@@ -162,6 +164,7 @@ const MainApp: React.FC = () => {
         {view === 'companies' && currentUser.role === UserRole.ADMIN && <CompanyManagement companies={companies} users={users} projects={projects} tickets={tickets} onAdd={addCompany} onUpdate={updateCompany} onDelete={deleteCompany} />}
         {view === 'users' && currentUser.role === UserRole.ADMIN && <UserManagement users={users} companies={companies} tickets={tickets} projects={projects} agencyName={agencyInfo.name} supportTeams={[agencyInfo.supportTeam1, agencyInfo.supportTeam2, agencyInfo.supportTeam3].filter(Boolean) as string[]} onAdd={addUser} onUpdate={async (id, data) => { await updateUser(id, data); }} onDelete={deleteUser} />}
         {view === 'projects' && (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPPORT || currentUser.role === UserRole.SUPPORT_LEAD) && <ProjectManagement projects={filteredProjects} companies={companies} users={users} tickets={tickets} currentUser={currentUser} supportTeams={[agencyInfo.supportTeam1, agencyInfo.supportTeam2, agencyInfo.supportTeam3].filter(Boolean) as string[]} onAdd={addProject} onUpdate={async (id, data) => { await updateProject(id, data); return true; }} onDelete={deleteProject} />}
+        {view === 'operationManagement' && (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.SUPPORT || currentUser.role === UserRole.SUPPORT_LEAD) && <OperationManagement currentUser={currentUser} />}
         {view === 'profile' && <ProfileEdit user={currentUser} companyName={currentUser.companyId ? companies.find(c => c.id === currentUser.companyId)?.name : '본사 (nu)'} onUpdate={(data) => updateUser(currentUser.id, data)} onCancel={() => changeView('list')} />}
         {view === 'dataManagement' && currentUser.role === UserRole.ADMIN && (
           <DataManagement

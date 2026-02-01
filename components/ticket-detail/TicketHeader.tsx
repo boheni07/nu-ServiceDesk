@@ -27,6 +27,7 @@ const TicketHeader: React.FC<Props> = ({ ticket }) => {
     const dueDiff = differenceInDays(startOfDay(finalDate), startOfDay(new Date()));
 
     const getDueBadgeColor = () => {
+        if (ticket.status === TicketStatus.COMPLETED) return 'bg-gradient-to-br from-slate-500 to-slate-600 shadow-slate-200';
         if (dueDiff <= 0) return 'bg-gradient-to-br from-rose-500 to-rose-600 shadow-rose-200'; // D-Day or Overdue
         if (dueDiff <= 2) return 'bg-gradient-to-br from-orange-400 to-orange-600 shadow-orange-200'; // Imminent
         if (dueDiff <= 5) return 'bg-gradient-to-br from-blue-400 to-blue-600 shadow-blue-200'; // Approaching
@@ -34,6 +35,7 @@ const TicketHeader: React.FC<Props> = ({ ticket }) => {
     };
 
     const getDueBadgeText = () => {
+        if (ticket.status === TicketStatus.COMPLETED) return '완료';
         if (dueDiff === 0) return 'D-Day';
         return dueDiff > 0 ? `D-${dueDiff}` : `D+${Math.abs(dueDiff)}`;
     };

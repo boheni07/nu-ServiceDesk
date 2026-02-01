@@ -12,8 +12,10 @@ export const useUsers = (currentUser: User | null) => {
         try {
             const data = await api.users.getAll();
             setUsers(data);
+            return data;
         } catch (error) {
             console.error(error);
+            return [];
         } finally {
             setLoading(false);
         }

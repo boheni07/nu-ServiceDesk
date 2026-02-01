@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { Ticket, Project, User, Company, Comment, HistoryEntry, AgencyInfo } from '../types';
+import { Ticket, Project, User, Company, Comment, HistoryEntry, AgencyInfo, ProjectOperationInfo } from '../types';
 import {
     mapTicket, mapTicketToDB,
     mapProject, mapProjectToDB,
@@ -7,7 +7,8 @@ import {
     mapCompany, mapCompanyToDB,
     mapHistory, mapHistoryToDB,
     mapComment, mapCommentToDB,
-    mapAgencyInfo
+    mapAgencyInfo,
+    mapOperationInfo, mapOperationInfoToDB
 } from '../lib/dbMappers';
 
 // Utility for error handling
@@ -205,6 +206,21 @@ export const api = {
         upsert: async (info: any) => {
             const { error } = await supabase.from('agency_info').upsert(info);
             handleApiError(error, 'Upsert Agency Info');
+        }
+    },
+
+    operationInfo: {
+        get: async (projectId: string) => {
+            const { data, error } = await supabase.from('project_operation_info').select('*').eq('project_id', projectId).single();
+            if (error && error.code !== 'PGRST116') {
+                handleApiError(error, 'Fetch Operation Info');
+            }
+            return data ? mapOperationInfo(data) : null;
+        },
+        upsert: async (info: ProjectOperationInfo) => {
+            const dbData = mapOperationInfoToDB(info);
+            const { error } = await supabase.from('project_operation_info').upsert(dbData);
+            handleApiError(error, 'Upsert Operation Info');
         }
     }
 };

@@ -12,8 +12,10 @@ export const useProjects = () => {
         try {
             const data = await api.projects.getAll();
             setProjects(data);
+            return data;
         } catch (error) {
             console.error(error);
+            return [];
         } finally {
             setLoading(false);
         }

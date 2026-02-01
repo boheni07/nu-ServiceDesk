@@ -46,6 +46,15 @@ const UserManagement: React.FC<Props> = ({ users, companies, tickets, projects, 
     remarks: ''
   });
 
+  // Validation State
+  const [errors, setErrors] = useState({
+    loginId: false,
+    password: false,
+    name: false,
+    companyId: false,
+    team: false
+  });
+
   const filteredUsers = users.filter(u =>
     u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     u.loginId.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -67,6 +76,13 @@ const UserManagement: React.FC<Props> = ({ users, companies, tickets, projects, 
       team: '',
       remarks: ''
     });
+    setErrors({
+      loginId: false,
+      password: false,
+      name: false,
+      companyId: false,
+      team: false
+    });
     setIsModalOpen(true);
   };
 
@@ -85,21 +101,29 @@ const UserManagement: React.FC<Props> = ({ users, companies, tickets, projects, 
       team: user.team || '',
       remarks: user.remarks || ''
     });
+    setErrors({
+      loginId: false,
+      password: false,
+      name: false,
+      companyId: false,
+      team: false
+    });
     setIsModalOpen(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.loginId || !formData.password || !formData.name) {
-      alert('ID, 비밀번호, 성명은 필수 항목입니다.');
-      return;
-    }
-    if (formData.role === UserRole.CUSTOMER && !formData.companyId) {
-      alert('고객담당인 경우 고객사 선택은 필수입니다.');
-      return;
-    }
-    if ((formData.role === UserRole.SUPPORT || formData.role === UserRole.SUPPORT_LEAD) && !formData.team) {
-      alert('지원담당 또는 지원책임인 경우 소속 지원팀 선택은 필수입니다.');
+
+    const newErrors = {
+      loginId: !formData.loginId.trim(),
+      password: !formData.password.trim(),
+      name: !formData.name.trim(),
+      companyId: formData.role === UserRole.CUSTOMER && !formData.companyId,
+      team: (formData.role === UserRole.SUPPORT || formData.role === UserRole.SUPPORT_LEAD) && !formData.team
+    };
+
+    if (Object.values(newErrors).some(v => v)) {
+      setErrors(newErrors);
       return;
     }
 
@@ -325,10 +349,16 @@ const UserManagement: React.FC<Props> = ({ users, companies, tickets, projects, 
                         required
                         pattern="[a-zA-Z0-9]+"
                         type="text"
-                        className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                        className={`w-full pl-10 pr-4 py-2 border rounded-lg outline-none text-sm ${errors.loginId
+                          ? 'border-red-500 ring-2 ring-red-500 focus:ring-red-500'
+                          : 'border-slate-200 focus:ring-2 focus:ring-blue-500'
+                          }`}
                         placeholder="영문, 숫자만 입력"
                         value={formData.loginId}
-                        onChange={(e) => setFormData({ ...formData, loginId: e.target.value })}
+                        onChange={(e) => {
+                          setFormData({ ...formData, loginId: e.target.value });
+                          if (e.target.value.trim()) setErrors(prev => ({ ...prev, loginId: false }));
+                        }}
                       />
                     </div>
                   </div>
@@ -339,10 +369,16 @@ const UserManagement: React.FC<Props> = ({ users, companies, tickets, projects, 
                       <input
                         required
                         type={showPassword ? "text" : "password"}
-                        className="w-full pl-10 pr-10 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                        className={`w-full pl-10 pr-10 py-2 border rounded-lg outline-none text-sm ${errors.password
+                          ? 'border-red-500 ring-2 ring-red-500 focus:ring-red-500'
+                          : 'border-slate-200 focus:ring-2 focus:ring-blue-500'
+                          }`}
                         placeholder="비밀번호"
                         value={formData.password}
-                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                        onChange={(e) => {
+                          setFormData({ ...formData, password: e.target.value });
+                          if (e.target.value.trim()) setErrors(prev => ({ ...prev, password: false }));
+                        }}
                       />
                       <button
                         type="button"
@@ -364,10 +400,16 @@ const UserManagement: React.FC<Props> = ({ users, companies, tickets, projects, 
                     <input
                       required
                       type="text"
-                      className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                      className={`w-full px-4 py-2 border rounded-lg outline-none text-sm ${errors.name
+                        ? 'border-red-500 ring-2 ring-red-500 focus:ring-red-500'
+                        : 'border-slate-200 focus:ring-2 focus:ring-blue-500'
+                        }`}
                       placeholder="성명"
                       value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, name: e.target.value });
+                        if (e.target.value.trim()) setErrors(prev => ({ ...prev, name: false }));
+                      }}
                     />
                   </div>
                   <div>
@@ -447,9 +489,15 @@ const UserManagement: React.FC<Props> = ({ users, companies, tickets, projects, 
                         <div className="relative">
                           <Building className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400" size={16} />
                           <select
-                            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white"
+                            className={`w-full pl-10 pr-4 py-2 border rounded-lg outline-none text-sm bg-white ${errors.companyId
+                              ? 'border-red-500 ring-2 ring-red-500 focus:ring-red-500'
+                              : 'border-slate-200 focus:ring-2 focus:ring-blue-500'
+                              }`}
                             value={formData.companyId}
-                            onChange={(e) => setFormData({ ...formData, companyId: e.target.value })}
+                            onChange={(e) => {
+                              setFormData({ ...formData, companyId: e.target.value });
+                              if (e.target.value) setErrors(prev => ({ ...prev, companyId: false }));
+                            }}
                             required
                           >
                             <option value="">고객사 선택</option>
@@ -468,9 +516,15 @@ const UserManagement: React.FC<Props> = ({ users, companies, tickets, projects, 
                           <Users className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400" size={16} />
                           <select
                             required
-                            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-white"
+                            className={`w-full pl-10 pr-4 py-2 border rounded-lg outline-none text-sm bg-white ${errors.team
+                              ? 'border-red-500 ring-2 ring-red-500 focus:ring-red-500'
+                              : 'border-slate-200 focus:ring-2 focus:ring-indigo-500'
+                              }`}
                             value={formData.team}
-                            onChange={(e) => setFormData({ ...formData, team: e.target.value })}
+                            onChange={(e) => {
+                              setFormData({ ...formData, team: e.target.value });
+                              if (e.target.value) setErrors(prev => ({ ...prev, team: false }));
+                            }}
                           >
                             {supportTeams.map((team, idx) => <option key={idx} value={team}>{team}</option>)}
                           </select>

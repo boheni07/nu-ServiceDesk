@@ -64,6 +64,14 @@ const TicketDetail: React.FC<Props> = ({
   const [satisfaction, setSatisfaction] = useState(3);
   const [completionFeedback, setCompletionFeedback] = useState('');
 
+  const [errors, setErrors] = useState({
+    planText: false,
+    expectedCompletionDate: false,
+    postponeDate: false,
+    postponeReason: false,
+    rejectReason: false
+  });
+
   useEffect(() => {
     if (showPostponeModal) {
       const lastDueDate = ticket.expectedCompletionDate || ticket.dueDate;
@@ -114,17 +122,29 @@ const TicketDetail: React.FC<Props> = ({
   }, [project.supportStaffIds, users]);
 
   const handleRegisterPlan = () => {
-    if (!planText) { alert('처리 계획을 입력해주세요.'); return; }
+    // Reset errors first
+    setErrors(prev => ({ ...prev, planText: false, expectedCompletionDate: false }));
+
+    let hasError = false;
+    const newErrors = { ...errors };
+
+    if (!planText.trim()) {
+      newErrors.planText = true;
+      hasError = true;
+    }
+
     // Date Validation
     const selectedDate = new Date(expectedCompletionDate);
     const maxDate = addBusinessDays(new Date(ticket.dueDate), 3);
     const minDate = startOfDay(new Date(ticket.createdAt));
-    if (isAfter(selectedDate, maxDate)) {
-      alert('계획시 처리기한은 요청시 처리기한(등록된 기한)보다 3근무일을 초과할 수 없습니다.');
-      return;
+
+    if (isAfter(selectedDate, maxDate) || selectedDate < minDate) {
+      newErrors.expectedCompletionDate = true;
+      hasError = true;
     }
-    if (selectedDate < minDate) {
-      alert('처리 기한은 등록일보다 이전일 수 없습니다.');
+
+    if (hasError) {
+      setErrors(newErrors);
       return;
     }
 
@@ -164,7 +184,16 @@ const TicketDetail: React.FC<Props> = ({
   };
 
   const handlePostponeRequest = () => {
-    if (!postponeDate || !postponeReason) { alert('연기 희망일과 사유를 모두 입력해주세요.'); return; }
+    const newErrors = {
+      postponeDate: !postponeDate,
+      postponeReason: !postponeReason
+    };
+
+    if (newErrors.postponeDate || newErrors.postponeReason) {
+      setErrors(prev => ({ ...prev, ...newErrors }));
+      return;
+    }
+
     const originalDateStr = format(new Date(ticket.dueDate), 'yyyy-MM-dd');
     const note = `[기한 연기 요청]\n당초 기한: ${originalDateStr}\n요청 기한: ${postponeDate}\n요청 사유: ${postponeReason}`;
     onStatusUpdate(ticket.id, TicketStatus.POSTPONE_REQUESTED, {
@@ -227,13 +256,20 @@ const TicketDetail: React.FC<Props> = ({
             ticket={ticket}
             currentUser={currentUser}
             planText={planText}
-            setPlanText={setPlanText}
+            setPlanText={(val) => {
+              setPlanText(val);
+              if (val.trim()) setErrors(prev => ({ ...prev, planText: false }));
+            }}
             expectedCompletionDate={expectedCompletionDate}
-            setExpectedCompletionDate={setExpectedCompletionDate}
+            setExpectedCompletionDate={(val) => {
+              setExpectedCompletionDate(val);
+              if (val) setErrors(prev => ({ ...prev, expectedCompletionDate: false }));
+            }}
             planFiles={planFiles}
             setPlanFiles={setPlanFiles}
             onRegisterPlan={handleRegisterPlan}
             allowedExtensions={ALLOWED_EXTENSIONS}
+            errors={errors}
           />
         </div>
 
@@ -244,7 +280,11 @@ const TicketDetail: React.FC<Props> = ({
             currentUser={currentUser}
             isDelayed={isDelayed}
             setPostponeDate={setPostponeDate}
-            setShowPostponeModal={setShowPostponeModal}
+            setPostponeDate={setPostponeDate}
+            setShowPostponeModal={(show) => {
+              setShowPostponeModal(show);
+              if (show) setErrors(prev => ({ ...prev, postponeDate: false, postponeReason: false }));
+            }}
             setShowCompleteModal={setShowCompleteModal}
             setShowRejectModal={setShowRejectModal}
             handleApprovePostpone={handleApprovePostpone}
@@ -285,11 +325,31 @@ const TicketDetail: React.FC<Props> = ({
             </div>
             <div className="space-y-2">
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">연기 희망일</label>
-              <input type="date" min={format(addBusinessDays(new Date(ticket.dueDate), 1), 'yyyy-MM-dd')} className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-700 focus:bg-white focus:border-orange-500 transition-colors" value={postponeDate} onChange={(e) => setPostponeDate(e.target.value)} />
+              <input
+                type="date"
+                min={format(addBusinessDays(new Date(ticket.dueDate), 1), 'yyyy-MM-dd')}
+                className={`w-full px-5 py-3.5 border rounded-2xl outline-none font-bold text-slate-700 transition-colors ${errors.postponeDate ? 'border-red-500 bg-red-50' : 'bg-slate-50 border-slate-200 focus:bg-white focus:border-orange-500'
+                  }`}
+                value={postponeDate}
+                onChange={(e) => {
+                  setPostponeDate(e.target.value);
+                  if (e.target.value) setErrors(prev => ({ ...prev, postponeDate: false }));
+                }}
+              />
             </div>
             <div className="space-y-2">
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">구체적 연기 사유</label>
-              <textarea className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none text-sm resize-none focus:bg-white focus:border-orange-500 transition-colors" rows={4} placeholder="지연 원인과 향후 일정을 상세히 입력하세요." value={postponeReason} onChange={(e) => setPostponeReason(e.target.value)} />
+              <textarea
+                className={`w-full px-5 py-4 border rounded-2xl outline-none text-sm resize-none transition-colors ${errors.postponeReason ? 'border-red-500 bg-red-50' : 'bg-slate-50 border-slate-200 focus:bg-white focus:border-orange-500'
+                  }`}
+                rows={4}
+                placeholder="지연 원인과 향후 일정을 상세히 입력하세요."
+                value={postponeReason}
+                onChange={(e) => {
+                  setPostponeReason(e.target.value);
+                  if (e.target.value) setErrors(prev => ({ ...prev, postponeReason: false }));
+                }}
+              />
             </div>
           </div>
         </Modal>

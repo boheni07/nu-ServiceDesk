@@ -1,4 +1,4 @@
-import { Ticket, Project, User, Company, Comment, HistoryEntry, AgencyInfo, TicketStatus, ProjectStatus, UserStatus, CompanyStatus } from '../types';
+import { Ticket, Project, User, Company, Comment, HistoryEntry, AgencyInfo, TicketStatus, ProjectStatus, UserStatus, CompanyStatus, ProjectOperationInfo } from '../types';
 
 // ------------------------------------------------------------------
 // Enum Mappers (Korean <-> English)
@@ -332,3 +332,19 @@ export const mapCompanyUpdatesToDB = (updates: Partial<Company>): any => {
     if (updates.status !== undefined) db.status = companyStatusToDB(updates.status);
     return db;
 };
+
+export const mapOperationInfo = (data: any): ProjectOperationInfo => ({
+    projectId: data.project_id,
+    hardwareInfo: data.hardware_info,
+    softwareInfo: data.software_info,
+    accountInfo: data.account_info,
+    notes: data.notes
+});
+
+export const mapOperationInfoToDB = (info: ProjectOperationInfo) => ({
+    project_id: info.projectId,
+    hardware_info: info.hardwareInfo || null,
+    software_info: info.softwareInfo || null,
+    account_info: info.accountInfo || null,
+    notes: info.notes || null
+});

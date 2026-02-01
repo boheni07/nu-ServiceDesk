@@ -25,10 +25,18 @@ const ProfileEdit: React.FC<Props> = ({ user, companyName, onUpdate, onCancel })
     remarks: user.remarks || ''
   });
 
+  const [errors, setErrors] = useState({ name: false, password: false });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.password) {
-      alert('성명과 비밀번호는 필수 항목입니다.');
+
+    const newErrors = {
+      name: !formData.name,
+      password: !formData.password
+    };
+
+    if (newErrors.name || newErrors.password) {
+      setErrors(newErrors);
       return;
     }
     onUpdate(formData);
@@ -74,9 +82,15 @@ const ProfileEdit: React.FC<Props> = ({ user, companyName, onUpdate, onCancel })
                   <input
                     required
                     type="text"
-                    className="w-full pl-12 pr-4 py-3.5 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-sm bg-slate-50 font-medium transition-all"
+                    className={`w-full pl-12 pr-4 py-3.5 border rounded-2xl outline-none text-sm bg-slate-50 font-medium transition-all ${errors.name
+                      ? 'border-red-500 ring-4 ring-red-500/10'
+                      : 'border-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500'
+                      }`}
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, name: e.target.value });
+                      if (e.target.value) setErrors(prev => ({ ...prev, name: false }));
+                    }}
                   />
                 </div>
               </div>
@@ -87,9 +101,15 @@ const ProfileEdit: React.FC<Props> = ({ user, companyName, onUpdate, onCancel })
                   <input
                     required
                     type={showPassword ? "text" : "password"}
-                    className="w-full pl-12 pr-12 py-3.5 border border-slate-200 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none text-sm bg-slate-50 font-medium transition-all"
+                    className={`w-full pl-12 pr-12 py-3.5 border rounded-2xl outline-none text-sm bg-slate-50 font-medium transition-all ${errors.password
+                      ? 'border-red-500 ring-4 ring-red-500/10'
+                      : 'border-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500'
+                      }`}
                     value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, password: e.target.value });
+                      if (e.target.value) setErrors(prev => ({ ...prev, password: false }));
+                    }}
                   />
                   <button
                     type="button"

@@ -13,8 +13,10 @@ export const useTickets = (currentUser: User | null) => {
         try {
             const data = await api.tickets.getAll();
             setTickets(data);
+            return data;
         } catch (error) {
             console.error(error);
+            return [];
         } finally {
             setLoading(false);
         }

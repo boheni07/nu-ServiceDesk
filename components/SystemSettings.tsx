@@ -5,11 +5,13 @@ import { Building2, Save, User, Users, Plus, X } from 'lucide-react';
 interface Props {
     info: AgencyInfo;
     onSave: (info: AgencyInfo) => void;
+    readOnly?: boolean;
 }
 
-const SystemSettings: React.FC<Props> = ({ info, onSave }) => {
+const SystemSettings: React.FC<Props> = ({ info, onSave, readOnly = false }) => {
     const [formData, setFormData] = useState<AgencyInfo>(info);
     const [isDirty, setIsDirty] = useState(false);
+    const [errors, setErrors] = useState({ name: false, ceoName: false });
 
     useEffect(() => {
         setFormData(info);
@@ -42,6 +44,8 @@ const SystemSettings: React.FC<Props> = ({ info, onSave }) => {
     };
 
     const handleChange = (field: keyof AgencyInfo, value: any) => {
+        if (readOnly) return;
+
         let formattedValue = value;
         if (field === 'registrationNumber') formattedValue = formatBusinessNumber(value);
         if (field === 'phoneNumber') formattedValue = formatPhoneNumber(value);
@@ -53,8 +57,15 @@ const SystemSettings: React.FC<Props> = ({ info, onSave }) => {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.name || !formData.ceoName) {
-            alert('기관명과 대표자명은 필수 입력 항목입니다.');
+        if (readOnly) return;
+
+        const newErrors = {
+            name: !formData.name,
+            ceoName: !formData.ceoName
+        };
+
+        if (newErrors.name || newErrors.ceoName) {
+            setErrors(newErrors);
             return;
         }
         onSave(formData);
@@ -65,16 +76,18 @@ const SystemSettings: React.FC<Props> = ({ info, onSave }) => {
         <div className="max-w-4xl mx-auto space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">환경 설정</h1>
-                    <p className="text-slate-500 mt-1 font-medium">시스템 운영 및 기관 정보를 관리합니다.</p>
+                    <h1 className="text-3xl font-black text-slate-900 tracking-tight">{readOnly ? '운영관리 정보' : '환경 설정'}</h1>
+                    <p className="text-slate-500 mt-1 font-medium">{readOnly ? '시스템 운영 기관의 상세 정보입니다.' : '시스템 운영 및 기관 정보를 관리합니다.'}</p>
                 </div>
-                <button
-                    onClick={handleSubmit}
-                    disabled={!isDirty}
-                    className={`flex items-center gap-2 px-6 py-3 rounded-xl font-black transition-all shadow-lg ${isDirty ? 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-105 shadow-blue-200' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
-                >
-                    <Save size={18} /> 설정 저장
-                </button>
+                {!readOnly && (
+                    <button
+                        onClick={handleSubmit}
+                        disabled={!isDirty}
+                        className={`flex items-center gap-2 px-6 py-3 rounded-xl font-black transition-all shadow-lg ${isDirty ? 'bg-blue-600 text-white hover:bg-blue-700 hover:scale-105 shadow-blue-200' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
+                    >
+                        <Save size={18} /> 설정 저장
+                    </button>
+                )}
             </div>
 
             <div className="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
@@ -95,8 +108,15 @@ const SystemSettings: React.FC<Props> = ({ info, onSave }) => {
                             <input
                                 type="text"
                                 value={formData.name}
-                                onChange={(e) => handleChange('name', e.target.value)}
-                                className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
+                                onChange={(e) => {
+                                    handleChange('name', e.target.value);
+                                    if (e.target.value) setErrors(prev => ({ ...prev, name: false }));
+                                }}
+                                disabled={readOnly}
+                                className={`w-full px-5 py-4 bg-slate-50 border rounded-2xl outline-none font-bold text-slate-800 transition-all ${readOnly ? 'opacity-70 cursor-not-allowed border-slate-200' :
+                                        errors.name ? 'border-red-500 ring-4 ring-red-500/10' :
+                                            'border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10'
+                                    }`}
                                 placeholder="예: 누비즈"
                             />
                         </div>
@@ -107,7 +127,8 @@ const SystemSettings: React.FC<Props> = ({ info, onSave }) => {
                                 type="text"
                                 value={formData.registrationNumber || ''}
                                 onChange={(e) => handleChange('registrationNumber', e.target.value)}
-                                className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-800 focus:bg-white focus:border-blue-500 transition-all"
+                                disabled={readOnly}
+                                className={`w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-800 transition-all ${!readOnly ? 'focus:bg-white focus:border-blue-500' : 'opacity-70 cursor-not-allowed'}`}
                                 placeholder="000-00-00000"
                             />
                         </div>
@@ -118,7 +139,8 @@ const SystemSettings: React.FC<Props> = ({ info, onSave }) => {
                                 type="text"
                                 value={formData.industry || ''}
                                 onChange={(e) => handleChange('industry', e.target.value)}
-                                className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-800 focus:bg-white focus:border-blue-500 transition-all"
+                                disabled={readOnly}
+                                className={`w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-800 transition-all ${!readOnly ? 'focus:bg-white focus:border-blue-500' : 'opacity-70 cursor-not-allowed'}`}
                                 placeholder="예: 소프트웨어 자문 및 개발 공급업"
                             />
                         </div>
@@ -129,7 +151,8 @@ const SystemSettings: React.FC<Props> = ({ info, onSave }) => {
                                 type="text"
                                 value={formData.phoneNumber || ''}
                                 onChange={(e) => handleChange('phoneNumber', e.target.value)}
-                                className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-800 focus:bg-white focus:border-blue-500 transition-all"
+                                disabled={readOnly}
+                                className={`w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-800 transition-all ${!readOnly ? 'focus:bg-white focus:border-blue-500' : 'opacity-70 cursor-not-allowed'}`}
                                 placeholder="02-0000-0000"
                             />
                         </div>
@@ -142,8 +165,15 @@ const SystemSettings: React.FC<Props> = ({ info, onSave }) => {
                                 <input
                                     type="text"
                                     value={formData.ceoName}
-                                    onChange={(e) => handleChange('ceoName', e.target.value)}
-                                    className="w-full pl-12 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
+                                    onChange={(e) => {
+                                        handleChange('ceoName', e.target.value);
+                                        if (e.target.value) setErrors(prev => ({ ...prev, ceoName: false }));
+                                    }}
+                                    disabled={readOnly}
+                                    className={`w-full pl-12 pr-5 py-4 bg-slate-50 border rounded-2xl outline-none font-bold text-slate-800 transition-all ${readOnly ? 'opacity-70 cursor-not-allowed border-slate-200' :
+                                            errors.ceoName ? 'border-red-500 ring-4 ring-red-500/10' :
+                                                'border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10'
+                                        }`}
                                     placeholder="대표자 성명"
                                 />
                                 <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -156,7 +186,8 @@ const SystemSettings: React.FC<Props> = ({ info, onSave }) => {
                                 type="text"
                                 value={formData.zipCode || ''}
                                 onChange={(e) => handleChange('zipCode', e.target.value)}
-                                className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-800 focus:bg-white focus:border-blue-500 transition-all"
+                                disabled={readOnly}
+                                className={`w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-800 transition-all ${!readOnly ? 'focus:bg-white focus:border-blue-500' : 'opacity-70 cursor-not-allowed'}`}
                                 placeholder="00000"
                             />
                         </div>
@@ -167,7 +198,8 @@ const SystemSettings: React.FC<Props> = ({ info, onSave }) => {
                                 type="text"
                                 value={formData.address || ''}
                                 onChange={(e) => handleChange('address', e.target.value)}
-                                className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-800 focus:bg-white focus:border-blue-500 transition-all"
+                                disabled={readOnly}
+                                className={`w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-800 transition-all ${!readOnly ? 'focus:bg-white focus:border-blue-500' : 'opacity-70 cursor-not-allowed'}`}
                                 placeholder="기본 주소 및 상세 주소"
                             />
                         </div>
@@ -177,7 +209,8 @@ const SystemSettings: React.FC<Props> = ({ info, onSave }) => {
                             <textarea
                                 value={formData.notes || ''}
                                 onChange={(e) => handleChange('notes', e.target.value)}
-                                className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-medium text-slate-700 text-sm focus:bg-white focus:border-blue-500 resize-none h-[140px] transition-all"
+                                disabled={readOnly}
+                                className={`w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-medium text-slate-700 text-sm resize-none h-[140px] transition-all ${!readOnly ? 'focus:bg-white focus:border-blue-500' : 'opacity-70 cursor-not-allowed'}`}
                                 placeholder="기타 비고 사항..."
                             />
                         </div>
@@ -201,30 +234,33 @@ const SystemSettings: React.FC<Props> = ({ info, onSave }) => {
                         <label className="block text-sm font-bold text-slate-500 mb-2 uppercase tracking-wider">지원팀 1</label>
                         <input
                             type="text"
-                            className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-slate-800 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                            className={`w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-slate-800 transition-all ${!readOnly ? 'focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10' : 'opacity-70 cursor-not-allowed'}`}
                             placeholder="예: 기술지원 1팀"
                             value={formData.supportTeam1 || ''}
                             onChange={(e) => handleChange('supportTeam1', e.target.value)}
+                            disabled={readOnly}
                         />
                     </div>
                     <div>
                         <label className="block text-sm font-bold text-slate-500 mb-2 uppercase tracking-wider">지원팀 2</label>
                         <input
                             type="text"
-                            className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-slate-800 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                            className={`w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-slate-800 transition-all ${!readOnly ? 'focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10' : 'opacity-70 cursor-not-allowed'}`}
                             placeholder="예: 기술지원 2팀"
                             value={formData.supportTeam2 || ''}
                             onChange={(e) => handleChange('supportTeam2', e.target.value)}
+                            disabled={readOnly}
                         />
                     </div>
                     <div>
                         <label className="block text-sm font-bold text-slate-500 mb-2 uppercase tracking-wider">지원팀 3</label>
                         <input
                             type="text"
-                            className="w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-slate-800 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                            className={`w-full px-5 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-slate-800 transition-all ${!readOnly ? 'focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10' : 'opacity-70 cursor-not-allowed'}`}
                             placeholder="예: 개발팀"
                             value={formData.supportTeam3 || ''}
                             onChange={(e) => handleChange('supportTeam3', e.target.value)}
+                            disabled={readOnly}
                         />
                     </div>
                 </div>

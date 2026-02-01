@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { User, UserRole, Ticket, TicketStatus, Project, Company, Comment, HistoryEntry, AgencyInfo, ProjectStatus, UserStatus, CompanyStatus, AGENCY_COMPANY_ID } from '../types';
+import { User, UserRole, Ticket, TicketStatus, Project, Company, Comment, HistoryEntry, AgencyInfo, ProjectStatus, UserStatus, CompanyStatus, AGENCY_COMPANY_ID, ProjectOperationInfo } from '../types';
 import { supabase } from '../lib/supabase';
 import { mapUser } from '../lib/dbMappers';
 import { useTickets } from './useTickets';
@@ -45,6 +45,19 @@ export const useServiceDesk = (currentUser: User | null) => {
         } catch (e) { console.error(e); }
     }, []);
 
+    const fetchOperationInfo = useCallback(async (projectId: string) => {
+        try {
+            return await api.operationInfo.get(projectId);
+        } catch (e) {
+            console.error(e);
+            return null;
+        }
+    }, []);
+
+    const saveOperationInfo = useCallback(async (info: ProjectOperationInfo) => {
+        await api.operationInfo.upsert(info);
+    }, []);
+
     const fetchAgencyInfo = useCallback(async () => {
         try {
             const data = await api.agencyInfo.get();
@@ -69,6 +82,7 @@ export const useServiceDesk = (currentUser: User | null) => {
         if (a) {
             setAgencyInfoLocal(a);
             // Check if Agency Company exists
+            // c comes from fetchCompanies() which now returns data
             const agencyCompExists = c && c.some((comp: Company) => comp.id === AGENCY_COMPANY_ID);
 
             if (!agencyCompExists) {
@@ -86,9 +100,11 @@ export const useServiceDesk = (currentUser: User | null) => {
 
                 // Add to DB
                 await supabase.from('companies').upsert(mapCompanyToDB(agencyCompany));
-                // Add to local state (c is the array we just fetched, but we called setCompanies inside fetchCompanies. 
-                // We need to update the state again if we add it.)
-                setCompanies(prev => [...prev, agencyCompany]);
+                // Add to local state, avoiding duplicates
+                setCompanies(prev => {
+                    if (prev.some(comp => comp.id === AGENCY_COMPANY_ID)) return prev;
+                    return [...prev, agencyCompany];
+                });
             }
         }
 
@@ -212,8 +228,10 @@ export const useServiceDesk = (currentUser: User | null) => {
         // Actually, let's use supabase directly to ensure ID constraint is handled as UPSERT.
         await supabase.from('companies').upsert(mapCompanyToDB(agencyCompany));
         setCompanies(prev => {
-            const exists = prev.find(c => c.id === AGENCY_COMPANY_ID);
-            if (exists) return prev.map(c => c.id === AGENCY_COMPANY_ID ? agencyCompany : c);
+            const exists = prev.some(c => c.id === AGENCY_COMPANY_ID);
+            if (exists) {
+                return prev.map(c => c.id === AGENCY_COMPANY_ID ? agencyCompany : c);
+            }
             return [...prev, agencyCompany];
         });
 
@@ -494,7 +512,9 @@ export const useServiceDesk = (currentUser: User | null) => {
         generateSamples,
         downloadBackup,
         restoreData,
-        loading
+        loading,
+        fetchOperationInfo,
+        saveOperationInfo
     };
 };
 

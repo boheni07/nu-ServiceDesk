@@ -47,8 +47,12 @@ const CompanyManagement: React.FC<Props> = ({ companies, users, projects, ticket
     zipCode: '',
     address: '',
     remarks: '',
+    remarks: '',
     status: CompanyStatus.ACTIVE
   });
+
+  // Validation State
+  const [nameError, setNameError] = useState(false);
 
   const filteredCompanies = companies.filter(c =>
     c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -60,6 +64,7 @@ const CompanyManagement: React.FC<Props> = ({ companies, users, projects, ticket
 
   const handleOpenAddModal = () => {
     setEditingCompany(null);
+    setNameError(false);
     setFormData({
       name: '',
       businessNumber: '',
@@ -76,6 +81,7 @@ const CompanyManagement: React.FC<Props> = ({ companies, users, projects, ticket
 
   const handleOpenEditModal = (company: Company) => {
     setEditingCompany(company);
+    setNameError(false);
     setFormData({
       name: company.name,
       businessNumber: company.businessNumber || '',
@@ -93,7 +99,7 @@ const CompanyManagement: React.FC<Props> = ({ companies, users, projects, ticket
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) {
-      alert('기관명은 필수 입력 사항입니다.');
+      setNameError(true);
       return;
     }
 
@@ -385,10 +391,16 @@ const CompanyManagement: React.FC<Props> = ({ companies, users, projects, ticket
                         <input
                           required
                           type="text"
-                          className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm transition-shadow"
+                          className={`w-full pl-10 pr-4 py-2 border rounded-lg outline-none text-sm transition-shadow ${nameError
+                            ? 'border-red-500 ring-2 ring-red-500 focus:ring-red-500'
+                            : 'border-slate-200 focus:ring-2 focus:ring-blue-500'
+                            }`}
                           placeholder="기관명"
                           value={formData.name}
-                          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                          onChange={(e) => {
+                            setFormData(prev => ({ ...prev, name: e.target.value }));
+                            if (e.target.value.trim()) setNameError(false);
+                          }}
                         />
                       </div>
                     </div>

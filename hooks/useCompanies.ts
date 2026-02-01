@@ -12,8 +12,10 @@ export const useCompanies = () => {
         try {
             const data = await api.companies.getAll();
             setCompanies(data);
+            return data;
         } catch (error) {
             console.error(error);
+            return [];
         } finally {
             setLoading(false);
         }

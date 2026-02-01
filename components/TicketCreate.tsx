@@ -46,6 +46,14 @@ const TicketCreate: React.FC<Props> = ({ projects, currentUser, users, companies
     initialData?.requestDate ? format(new Date(initialData.requestDate), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd')
   );
 
+  // Validation State
+  const [errors, setErrors] = useState({
+    projectId: false,
+    title: false,
+    description: false,
+    dueReason: false
+  });
+
   const selectedProjectDetails = useMemo(() => {
     const project = projects.find(p => p.id === projectId);
     if (!project) return null;
@@ -75,8 +83,16 @@ const TicketCreate: React.FC<Props> = ({ projects, currentUser, users, companies
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !description || !projectId || (isShortened && !dueReason)) {
-      alert('모든 필수 항목을 입력해주세요.');
+
+    const newErrors = {
+      projectId: !projectId,
+      title: !title.trim(),
+      description: !description.trim(),
+      dueReason: isShortened && !dueReason.trim()
+    };
+
+    if (Object.values(newErrors).some(v => v)) {
+      setErrors(newErrors);
       return;
     }
 
@@ -108,9 +124,15 @@ const TicketCreate: React.FC<Props> = ({ projects, currentUser, users, companies
             <div className="space-y-2">
               <label className="block text-xs font-bold text-slate-700 ml-1 mb-1">프로젝트 선택 *</label>
               <select
-                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none bg-slate-50 transition-all text-sm font-medium"
+                className={`w-full px-3 py-2.5 border rounded-xl outline-none bg-slate-50 transition-all text-sm font-medium ${errors.projectId
+                  ? 'border-red-500 ring-2 ring-red-500 focus:ring-red-500'
+                  : 'border-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500'
+                  }`}
                 value={projectId}
-                onChange={(e) => setProjectId(e.target.value)}
+                onChange={(e) => {
+                  setProjectId(e.target.value);
+                  if (e.target.value) setErrors(prev => ({ ...prev, projectId: false }));
+                }}
                 required
               >
                 <option value="">프로젝트를 선택하세요</option>
@@ -170,22 +192,34 @@ const TicketCreate: React.FC<Props> = ({ projects, currentUser, users, companies
               <input
                 type="text"
                 placeholder="요청 제목을 입력하세요"
-                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none bg-slate-50 transition-all text-sm font-medium"
+                className={`w-full px-3 py-2.5 border rounded-xl outline-none bg-slate-50 transition-all text-sm font-medium ${errors.title
+                  ? 'border-red-500 ring-2 ring-red-500 focus:ring-red-500'
+                  : 'border-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500'
+                  }`}
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  if (e.target.value.trim()) setErrors(prev => ({ ...prev, title: false }));
+                }}
                 required
               />
             </div>
 
             <div className="space-y-1">
               <label className="block text-xs font-bold text-slate-700 ml-1 mb-1">요청 상세 *</label>
-              <div className="relative border border-slate-200 rounded-xl overflow-hidden focus-within:ring-4 focus-within:ring-blue-500/10 focus-within:border-blue-500 transition-all bg-slate-50">
+              <div className={`relative border rounded-xl overflow-hidden transition-all bg-slate-50 ${errors.description
+                ? 'border-red-500 ring-2 ring-red-500'
+                : 'border-slate-200 focus-within:ring-4 focus-within:ring-blue-500/10 focus-within:border-blue-500'
+                }`}>
                 <textarea
                   rows={5}
                   placeholder="요청 내용을 상세히 기재해주세요."
                   className="w-full px-4 py-3 bg-transparent outline-none resize-none text-sm leading-relaxed"
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={(e) => {
+                    setDescription(e.target.value);
+                    if (e.target.value.trim()) setErrors(prev => ({ ...prev, description: false }));
+                  }}
                   required
                 />
                 <div className="p-3 bg-white/50 border-t border-slate-200/50">
@@ -242,7 +276,19 @@ const TicketCreate: React.FC<Props> = ({ projects, currentUser, users, companies
               <div className="space-y-3">
                 <input type="date" className="w-full px-3 py-2.5 border border-slate-200 rounded-xl outline-none bg-white text-sm font-medium" value={dueDate} min={format(new Date(), 'yyyy-MM-dd')} onChange={(e) => setDueDate(e.target.value)} />
                 {isShortened && (
-                  <textarea rows={3} placeholder="기한 단축 사유를 입력하세요." className="w-full px-4 py-3 border border-rose-200 rounded-xl text-xs bg-white resize-none" value={dueReason} onChange={(e) => setDueReason(e.target.value)} />
+                  <textarea
+                    rows={3}
+                    placeholder="기한 단축 사유를 입력하세요."
+                    className={`w-full px-4 py-3 border rounded-xl text-xs bg-white resize-none ${errors.dueReason
+                      ? 'border-red-500 ring-2 ring-red-500 focus:ring-red-500'
+                      : 'border-rose-200'
+                      }`}
+                    value={dueReason}
+                    onChange={(e) => {
+                      setDueReason(e.target.value);
+                      if (e.target.value.trim()) setErrors(prev => ({ ...prev, dueReason: false }));
+                    }}
+                  />
                 )}
               </div>
             </div>

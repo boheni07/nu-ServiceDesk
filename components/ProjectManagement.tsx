@@ -49,6 +49,13 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, ticket
     status: ProjectStatus.ACTIVE
   });
 
+  // Validation State
+  const [errors, setErrors] = useState({
+    name: false,
+    clientId: false,
+    supportStaffIds: false
+  });
+
   const filteredProjects = projects.filter(p =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.description.toLowerCase().includes(searchTerm.toLowerCase())
@@ -71,6 +78,7 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, ticket
       supportTeam: '',
       status: ProjectStatus.ACTIVE
     });
+    setErrors({ name: false, clientId: false, supportStaffIds: false });
     setIsModalOpen(true);
   };
 
@@ -88,17 +96,21 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, ticket
       supportTeam: project.supportTeam || '',
       status: project.status
     });
+    setErrors({ name: false, clientId: false, supportStaffIds: false });
     setIsModalOpen(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.clientId) {
-      alert('프로젝트명과 고객사는 필수 항목입니다.');
-      return;
-    }
-    if (formData.supportStaffIds.length === 0) {
-      alert('최소 1명의 지원담당자가 필요합니다. (첫 번째 선택자가 PM) ');
+
+    const newErrors = {
+      name: !formData.name.trim(),
+      clientId: !formData.clientId,
+      supportStaffIds: formData.supportStaffIds.length === 0
+    };
+
+    if (Object.values(newErrors).some(v => v)) {
+      setErrors(newErrors);
       return;
     }
 
@@ -337,10 +349,16 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, ticket
                       <input
                         required
                         type="text"
-                        className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                        className={`w-full px-4 py-2 border rounded-lg outline-none text-sm ${errors.name
+                          ? 'border-red-500 ring-2 ring-red-500 focus:ring-red-500'
+                          : 'border-slate-200 focus:ring-2 focus:ring-blue-500'
+                          }`}
                         placeholder="프로젝트 이름을 입력하세요"
                         value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        onChange={(e) => {
+                          setFormData({ ...formData, name: e.target.value });
+                          if (e.target.value.trim()) setErrors(prev => ({ ...prev, name: false }));
+                        }}
                       />
                     </div>
                     <div>
@@ -381,8 +399,14 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, ticket
                       <select
                         required
                         value={formData.clientId}
-                        onChange={(e) => setFormData({ ...formData, clientId: e.target.value, customerContactIds: [] })}
-                        className="w-full pl-10 appearance-none bg-slate-50 border-slate-200 focus:bg-white focus:border-blue-500"
+                        onChange={(e) => {
+                          setFormData({ ...formData, clientId: e.target.value, customerContactIds: [] });
+                          if (e.target.value) setErrors(prev => ({ ...prev, clientId: false }));
+                        }}
+                        className={`w-full pl-10 appearance-none bg-slate-50 border rounded-lg focus:bg-white ${errors.clientId
+                          ? 'border-red-500 ring-2 ring-red-500 focus:ring-red-500'
+                          : 'border-slate-200 focus:border-blue-500'
+                          }`}
                       >
                         <option value="">고객사 선택</option>
                         {companies
@@ -424,11 +448,20 @@ const ProjectManagement: React.FC<Props> = ({ projects, companies, users, ticket
 
                   <div>
                     <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">지원담당 선택 (복수 선택, 첫 번째 선택자가 PM)</label>
-                    <div className="grid grid-cols-3 gap-3 p-3 border border-slate-200 rounded-lg bg-slate-50">
+                    <div className={`grid grid-cols-3 gap-3 p-3 border rounded-lg bg-slate-50 ${errors.supportStaffIds
+                      ? 'border-red-500 ring-2 ring-red-500'
+                      : 'border-slate-200'
+                      }`}>
                       {supportUsers.map(user => (
                         <div
                           key={user.id}
-                          onClick={() => toggleSelection(user.id, 'supportStaffIds')}
+                          onClick={() => {
+                            toggleSelection(user.id, 'supportStaffIds');
+                            // We can't easily check 'length > 0' here because state update is async, 
+                            // but we can clear error optimistically if we are adding? 
+                            // Or safer: just clear error if user clicks anything, assuming they are trying to fix it.
+                            setErrors(prev => ({ ...prev, supportStaffIds: false }));
+                          }}
                           className={`flex items-center gap-2 p-2 rounded-lg border transition-all cursor-pointer ${formData.supportStaffIds.includes(user.id)
                             ? 'bg-blue-600 text-white border-blue-600'
                             : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300'

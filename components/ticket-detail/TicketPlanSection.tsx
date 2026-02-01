@@ -14,6 +14,10 @@ interface Props {
     setPlanFiles: (files: File[]) => void;
     onRegisterPlan: () => void;
     allowedExtensions: string;
+    errors?: {
+        planText: boolean;
+        expectedCompletionDate: boolean;
+    };
 }
 
 const TicketPlanSection: React.FC<Props> = ({
@@ -26,7 +30,8 @@ const TicketPlanSection: React.FC<Props> = ({
     planFiles,
     setPlanFiles,
     onRegisterPlan,
-    allowedExtensions
+    allowedExtensions,
+    errors = { planText: false, expectedCompletionDate: false }
 }) => {
     const planFileInputRef = useRef<HTMLInputElement>(null);
 
@@ -76,11 +81,24 @@ const TicketPlanSection: React.FC<Props> = ({
                 </>
             ) : (currentUser.role === UserRole.SUPPORT || currentUser.role === UserRole.SUPPORT_LEAD || currentUser.role === UserRole.ADMIN) ? (
                 <div className="flex flex-col h-full gap-4">
-                    <textarea className="flex-1 w-full px-4 py-3 border border-slate-200 rounded-xl outline-none text-sm resize-none bg-white focus:ring-4 focus:ring-blue-500/10 min-h-[100px]" placeholder="처리 방법과 일정을 등록하세요." rows={5} value={planText} onChange={(e) => setPlanText(e.target.value)} />
+                    <textarea
+                        className={`flex-1 w-full px-4 py-3 border rounded-xl outline-none text-sm resize-none focus:ring-4 focus:ring-blue-500/10 min-h-[100px] ${errors.planText ? 'border-red-500 ring-2 ring-red-500 focus:ring-red-500' : 'border-slate-200 bg-white'
+                            }`}
+                        placeholder="처리 방법과 일정을 등록하세요."
+                        rows={5}
+                        value={planText}
+                        onChange={(e) => setPlanText(e.target.value)}
+                    />
                     <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-3 shadow-sm shrink-0">
                         <div>
                             <label className="block text-[10px] font-black text-slate-400 mb-1.5 uppercase tracking-widest">계획 처리기한</label>
-                            <input type="date" className="w-full px-3 py-2.5 border border-slate-200 rounded-lg outline-none text-sm font-bold bg-slate-50" value={expectedCompletionDate} onChange={(e) => setExpectedCompletionDate(e.target.value)} />
+                            <input
+                                type="date"
+                                className={`w-full px-3 py-2.5 border rounded-lg outline-none text-sm font-bold bg-slate-50 ${errors.expectedCompletionDate ? 'border-red-500 ring-2 ring-red-500' : 'border-slate-200'
+                                    }`}
+                                value={expectedCompletionDate}
+                                onChange={(e) => setExpectedCompletionDate(e.target.value)}
+                            />
                         </div>
                         <div>
                             <label className="block text-[10px] font-black text-slate-400 mb-1.5 uppercase tracking-widest">계획 첨부파일 (선택)</label>

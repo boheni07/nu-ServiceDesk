@@ -142,3 +142,11 @@ export interface AgencyInfo {
 }
 
 export const AGENCY_COMPANY_ID = 'agency-root-company';
+
+export interface ProjectOperationInfo {
+  projectId: string;
+  hardwareInfo?: string;
+  softwareInfo?: string;
+  accountInfo?: string;
+  notes?: string;
+}
